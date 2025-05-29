@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.server.embeddeploy.name }}
-          image: "{{ .Values.server.embeddeploy.image }}"
+          image: "{{.Values.base_imagedomain}}{{ .Values.server.embeddeploy.image_name }}:latest"
           imagePullPolicy: {{ .Values.server.embeddeploy.pullPolicy }}
           ports:
             - containerPort: {{ .Values.server.embeddeploy.port }}

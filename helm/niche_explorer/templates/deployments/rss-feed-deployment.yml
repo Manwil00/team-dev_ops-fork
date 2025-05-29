@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.server.rss_feed.name }}
-          image: "{{ .Values.server.rss_feed.image }}"
+          image: "{{.Values.base_imagedomain}}{{ .Values.server.rss_feed.image_name }}:latest"
           imagePullPolicy: {{ .Values.server.rss_feed.pullPolicy }}
           ports:
             - containerPort: {{ .Values.server.rss_feed.port }}

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.server.source_detector.name }}
-          image: "{{ .Values.server.source_detector.image }}"
+          image: "{{.Values.base_imagedomain}}{{ .Values.server.source_detector.image_name }}:latest"
           imagePullPolicy: {{ .Values.server.source_detector.pullPolicy }}
           ports:
             - containerPort: {{ .Values.server.source_detector.port }}

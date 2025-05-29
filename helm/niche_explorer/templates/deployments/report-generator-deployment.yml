@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.server.report_generator.name }}
-          image: "{{ .Values.server.report_generator.image }}"
+          image: "{{.Values.base_imagedomain}}{{ .Values.server.report_generator.image_name }}:latest"
           imagePullPolicy: {{ .Values.server.report_generator.pullPolicy }}
           ports:
             - containerPort: {{ .Values.server.report_generator.port }}
