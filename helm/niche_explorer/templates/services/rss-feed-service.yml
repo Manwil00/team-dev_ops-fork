@@ -1,0 +1,11 @@
+# Template taken from: https://github.com/Mtze/kubernetes-templates/
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.server.rss_feed.name }}-service
+spec:
+  selector:
+    app: {{ .Values.server.rss_feed.name }}
+  ports:
+    - port: {{ .Values.server.rss_feed.port }}
+      targetPort: {{ .Values.server.rss_feed.name }}-api

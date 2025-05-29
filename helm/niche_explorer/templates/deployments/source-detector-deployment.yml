@@ -1,0 +1,22 @@
+# Template taken from: https://github.com/Mtze/kubernetes-templates/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.server.source_detector.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.server.source_detector.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.server.source_detector.name }}
+    spec:
+      containers:
+        - name: {{ .Values.server.source_detector.name }}
+          image: "{{.Values.base_imagedomain}}{{ .Values.server.source_detector.image_name }}:latest"
+          imagePullPolicy: {{ .Values.server.source_detector.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.server.source_detector.port }}
+              name: {{ .Values.server.source_detector.name }}-api

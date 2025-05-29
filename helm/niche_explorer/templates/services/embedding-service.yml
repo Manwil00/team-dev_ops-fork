@@ -1,0 +1,11 @@
+# Template taken from: https://github.com/Mtze/kubernetes-templates/
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.server.embeddeploy.name }}-service
+spec:
+  selector:
+    app: {{ .Values.server.embeddeploy.name }}
+  ports:
+    - port: {{ .Values.server.embeddeploy.port }}
+      targetPort: {{ .Values.server.embeddeploy.name }}-api
