@@ -2,19 +2,50 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: <ingress-name> #FIXME
-  namespace: <namespace> #FIXME
+  name: "niche-explorer-ingress"
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: <fqdn> #FIXME e.g. example.mtze.me
+  - host: "{{.Values.ingress.student_id}}{{.Values.ingress.base_host}}" #FIXME e.g. example.mtze.me
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: <serivce-name> #FIXME
+            name: {{ .Values.client.ui.name }}
             port:
-              number: <service-port> #FIXME
+              number: {{ .Values.client.ui.port }}
+
+      - path: "/{{ .Values.server.report_generator.name }}"
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.server.report_generator.name }}
+            port:
+              number: {{ .Values.server.report_generator.port }}
+
+      - path: "/{{ .Values.server.embeddeploy.name }}"
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.server.embeddeploy.name }}
+            port:
+              number: {{ .Values.server.embeddeploy.port }}
+
+      - path: "/{{ .Values.server.rss_feed.name }}"
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.server.rss_feed.name }}
+            port:
+              number: {{ .Values.server.rss_feed.port }}
+              
+      - path: "/{{ .Values.server.source_detector.name }}"
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.server.source_detector.name }}
+            port:
+              number: {{ .Values.server.source_detector.port }}
