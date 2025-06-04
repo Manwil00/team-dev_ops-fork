@@ -18,6 +18,14 @@ spec:
             port:
               number: {{ .Values.client.ui.port }}
 
+      - path: "/{{ .Values.server.monitoring.name }}"
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.server.monitoring.name }}
+            port:
+              number: {{ .Values.server.monitoring.port }}
+
       - path: "/{{ .Values.server.report_generator.name }}"
         pathType: Prefix
         backend:
@@ -26,26 +34,18 @@ spec:
             port:
               number: {{ .Values.server.report_generator.port }}
 
-      - path: "/{{ .Values.server.embeddeploy.name }}"
+      - path: "/{{ .Values.server.rss_fetcher.name }}"
         pathType: Prefix
         backend:
           service:
-            name: {{ .Values.server.embeddeploy.name }}
+            name: {{ .Values.server.rss_fetcher.name }}
             port:
-              number: {{ .Values.server.embeddeploy.port }}
-
-      - path: "/{{ .Values.server.rss_feed.name }}"
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ .Values.server.rss_feed.name }}
-            port:
-              number: {{ .Values.server.rss_feed.port }}
+              number: {{ .Values.server.rss_fetcher.port }}
               
-      - path: "/{{ .Values.server.source_detector.name }}"
+      - path: "/{{ .Values.genai.name }}"
         pathType: Prefix
         backend:
           service:
-            name: {{ .Values.server.source_detector.name }}
+            name: {{ .Values.genai.name }}
             port:
-              number: {{ .Values.server.source_detector.port }}
+              number: {{ .Values.genai.port }}

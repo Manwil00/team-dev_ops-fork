@@ -3,42 +3,46 @@
 replicaCount: 1
 base_imagedomain: "ghcr.io/aet-devops25/team-dev_ops/"
 
-server:
-  rss_feed:
-    name: rss-feed
-    image_name: trend-dashboard
-    port: 8083
-    pullPolicy: Always
-  
-  report_generator:
-    name: report-gen
-    image_name: content-ingestion
-    port: 8081
-    pullPolicy: Always
-
-  embeddeploy:
-    name: embeddeploy
-    image_name: growth-calculation
-    port: 8082
-    pullPolicy: Always
-
-  source_detector:
-    name: source-det
-    image_name: monitoring
-    port: 8084
-    pullPolicy: Always
-
+# Client service - UI
 client:
   ui:
     name: ui
     image_name: client
+    port: 80
+    pullPolicy: Always
+
+# Server services
+server:
+
+  monitoring:
+    name: monitoring
+    image_name: monitoring
     port: 8080
     pullPolicy: Always
+
+  report_generator:
+    name: report-gen
+    image_name: report-generator
+    port: 8081
+    pullPolicy: Always
+
+  rss_fetcher:
+    name: rss-fetcher
+    image_name: rss-fetcher
+    port: 8082
+    pullPolicy: Always
+
+# GenAI service
+genai:
+  name: genai
+  image_name: genai
+  port: 8083
+  pullPolicy: Always
 
 ingress:
   enabled: true
   className: "nginx"
-  student_id: "ge74tif"
+  student_id: "ge74tif" # <TODO: Placeholder student ID>
   base_host: ".student.k8s.aet.cit.tum.de" # <TODO: Replace with actual FQDN>
   # tls: true
   # annotations:
