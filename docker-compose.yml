@@ -42,7 +42,7 @@ services:
     restart: unless-stopped
 
 
-  # GenAI services
+  # GenAI service
   genai:
     build:
       context: ./genai
