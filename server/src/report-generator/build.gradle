@@ -2,7 +2,7 @@ apply plugin: 'org.springframework.boot'
 
 bootJar {
     enabled = true
-    mainClass = 'com.nicheexplorer.monitoring.MonitoringApplication'
+    mainClass = 'com.nicheexplorer.reportgenerator.ReportGeneratorApplication'
 }
 
 jar {

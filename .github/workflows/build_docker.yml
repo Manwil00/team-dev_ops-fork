@@ -2,6 +2,9 @@ name: Build Docker Images
 
 on:
   push:
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   test:
@@ -38,18 +41,24 @@ jobs:
           - service: client
             context: ./client
             dockerfile: ./client/Dockerfile
-          - service: growth-calculation
-            context: ./server
-            dockerfile: ./server/src/growth-calculation/Dockerfile
-          - service: content-ingestion
-            context: ./server
-            dockerfile: ./server/src/content-ingestion/Dockerfile
-          - service: trend-dashboard
-            context: ./server
-            dockerfile: ./server/src/trend-dashboard/Dockerfile
+
           - service: monitoring
             context: ./server
             dockerfile: ./server/src/monitoring/Dockerfile
+
+          - service: report-generator
+            context: ./server
+            dockerfile: ./server/src/report-generator/Dockerfile
+
+          - service: rss-fetcher
+            context: ./server
+            dockerfile: ./server/src/rss-fetcher/Dockerfile
+
+          - service: genai
+            context: ./genai
+            dockerfile: ./genai/Dockerfile
+
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -20,16 +20,16 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./letsencrypt:/letsencrypt
 
-  # Frontend service
+  # Client service - UI
   client:
     image: ghcr.io/aet-devops25/team-dev_ops/client:latest
     environment:
       - PUBLIC_API_URL=${PUBLIC_API_URL}
     depends_on:
-      - growth-calculation
-      - content-ingestion
-      - trend-dashboard
       - monitoring
+      - report-generator
+      - rss-fetcher
+      - genai
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
@@ -41,54 +41,54 @@ services:
       - "traefik.http.routers.client.middlewares=client-compress"
       - "traefik.http.routers.client.priority=1"
 
-  # Backend services
-  growth-calculation:
-    image: ghcr.io/aet-devops25/team-dev_ops/growth-calculation:latest
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.growth-calculation.rule=Host(`${SERVER_HOST}`) && PathPrefix(`/api/growth`)"
-      - "traefik.http.services.growth-calculation.loadbalancer.server.port=8082"
-      - "traefik.http.routers.growth-calculation.entrypoints=websecure"
-      - "traefik.http.routers.growth-calculation.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.growth-calculation.priority=10"
-
-  content-ingestion:
-    image: ghcr.io/aet-devops25/team-dev_ops/content-ingestion:latest
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.content-ingestion.rule=Host(`${SERVER_HOST}`) && PathPrefix(`/api/content`)"
-      - "traefik.http.services.content-ingestion.loadbalancer.server.port=8081"
-      - "traefik.http.routers.content-ingestion.entrypoints=websecure"
-      - "traefik.http.routers.content-ingestion.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.content-ingestion.priority=10"
-
-  trend-dashboard:
-    image: ghcr.io/aet-devops25/team-dev_ops/trend-dashboard:latest
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.trend-dashboard.rule=Host(`${SERVER_HOST}`) && PathPrefix(`/api/trends`)"
-      - "traefik.http.services.trend-dashboard.loadbalancer.server.port=8083"
-      - "traefik.http.routers.trend-dashboard.entrypoints=websecure"
-      - "traefik.http.routers.trend-dashboard.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.trend-dashboard.priority=10"
-
+  # Server services
   monitoring:
     image: ghcr.io/aet-devops25/team-dev_ops/monitoring:latest
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.monitoring.rule=Host(`${SERVER_HOST}`) && PathPrefix(`/api/monitoring`)"
-      - "traefik.http.services.monitoring.loadbalancer.server.port=8084"
+      - "traefik.http.services.monitoring.loadbalancer.server.port=8080"
       - "traefik.http.routers.monitoring.entrypoints=websecure"
       - "traefik.http.routers.monitoring.tls.certresolver=letsencrypt"
       - "traefik.http.routers.monitoring.priority=10"
 
+  report-generator:
+    image: ghcr.io/aet-devops25/team-dev_ops/report-generator:latest
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.report-generator.rule=Host(`${SERVER_HOST}`) && PathPrefix(`/api/report-gen`)"
+      - "traefik.http.services.report-generator.loadbalancer.server.port=8081"
+      - "traefik.http.routers.report-generator.entrypoints=websecure"
+      - "traefik.http.routers.report-generator.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.report-generator.priority=10"
+
+  rss-fetcher:
+    image: ghcr.io/aet-devops25/team-dev_ops/rss-fetcher:latest
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rss-fetcher.rule=Host(`${SERVER_HOST}`) && PathPrefix(`/api/rss-fetcher`)"
+      - "traefik.http.services.rss-fetcher.loadbalancer.server.port=8082"
+      - "traefik.http.routers.rss-fetcher.entrypoints=websecure"
+      - "traefik.http.routers.rss-fetcher.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.rss-fetcher.priority=10"
+
+  genai:
+    image: ghcr.io/aet-devops25/team-dev_ops/genai:latest
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.genai.rule=Host(`${SERVER_HOST}`) && PathPrefix(`/api/genai`)"
+      - "traefik.http.services.genai.loadbalancer.server.port=8083"
+      - "traefik.http.routers.genai.entrypoints=websecure"
+      - "traefik.http.routers.genai.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.genai.priority=10"
+
   # Fallback API router for any unmatched /api requests
   api-fallback:
-    image: ghcr.io/aet-devops25/team-dev_ops/content-ingestion:latest
+    image: ghcr.io/aet-devops25/team-dev_ops/monitoring:latest
     restart: unless-stopped
     labels:
       - "traefik.enable=true"

@@ -1,8 +1,10 @@
-apply plugin: 'org.springframework.boot'
+plugins {
+    id 'org.springframework.boot'
+}
 
 bootJar {
     enabled = true
-    mainClass = 'com.nicheexplorer.monitoring.MonitoringApplication'
+    mainClass = 'com.nicheexplorer.rssfetcher.RssFetcherApplication'
 }
 
 jar {

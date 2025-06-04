@@ -9,13 +9,11 @@ pluginManagement {
 rootProject.name = 'niche-explorer'
 
 include 'common'
-include 'content-ingestion'
-include 'growth-calculation'
 include 'monitoring'
-include 'trend-dashboard'
+include 'report-generator'
+include 'rss-fetcher'
 
 project(':common').projectDir = file('src/common')
-project(':content-ingestion').projectDir = file('src/content-ingestion')
-project(':growth-calculation').projectDir = file('src/growth-calculation')
-project(':trend-dashboard').projectDir = file('src/trend-dashboard')
 project(':monitoring').projectDir = file('src/monitoring')
+project(':report-generator').projectDir = file('src/report-generator')
+project(':rss-fetcher').projectDir = file('src/rss-fetcher')
