@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --from=build /app/src/rss-fetcher/build/libs/*.jar app.jar
 
 # Expose the service port
-EXPOSE 8081
+EXPOSE 8082
 
 # Command to run the service
 CMD ["java", "-jar", "app.jar"] 

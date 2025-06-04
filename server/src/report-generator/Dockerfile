@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --from=build /app/src/report-generator/build/libs/*.jar app.jar
 
 # Expose the service port
-EXPOSE 8082
+EXPOSE 8081
 
 # Command to run the service
 CMD ["java", "-jar", "app.jar"] 

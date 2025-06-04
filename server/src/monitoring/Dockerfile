@@ -24,7 +24,7 @@ WORKDIR /app
 COPY --from=build /app/src/monitoring/build/libs/*.jar app.jar
 
 # Expose the service port
-EXPOSE 8084
+EXPOSE 8080
 
 # Command to run the service
 CMD ["java", "-jar", "app.jar"] 
