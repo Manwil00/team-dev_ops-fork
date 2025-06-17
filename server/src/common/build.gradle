@@ -1,9 +1,0 @@
-// Common module is a library, not a Spring Boot application
-jar {
-    enabled = true
-}
-
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-} 

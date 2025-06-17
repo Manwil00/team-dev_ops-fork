@@ -1,27 +1,22 @@
-# Build stage
-FROM gradle:7.6.4-jdk11 AS build
+FROM gradle:8.7-jdk21 AS build
 
-# Set working directory
+# ---- build api-server JAR ----
+WORKDIR /workspace
+
+# Copy Gradle wrapper, settings, and source code
+COPY . .
+
+# Build only the api-server sub-module to keep the image small
+RUN gradle :api-server:bootJar --no-daemon
+
+# ---- runtime image ----
+FROM eclipse-temurin:21-jre AS runtime
 WORKDIR /app
 
-# Copy Gradle files
-COPY build.gradle settings.gradle ./
-COPY gradle ./gradle
-COPY src ./src
+# Copy the JAR produced in the previous stage
+COPY --from=build /workspace/src/api-server/build/libs/*.jar app.jar
 
-# Build the application
-RUN gradle build --no-daemon
-
-# Run stage
-FROM openjdk:11-jre-slim
-
-WORKDIR /app
-
-# Copy the built artifact from build stage
-COPY --from=build /app/build/libs/*.jar app.jar
-
-# Expose the application port
+# Expose Spring Boot port
 EXPOSE 8080
 
-# Command to run the application
-CMD ["java", "-jar", "app.jar"] 
+ENTRYPOINT ["java","-jar","app.jar"] 

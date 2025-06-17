@@ -1,5 +1,5 @@
 services:
-  # Client service - UI
+  # Client (React + Vite)
   client:
     build:
       context: ./client
@@ -8,47 +8,34 @@ services:
       - "80:80"
     networks:
       - niche-explorer-network
+    depends_on:
+      - api-server
     restart: unless-stopped
-   
-  # Server services
-  monitoring:
+
+  # Spring Boot API server
+  api-server:
     build:
       context: ./server
-      dockerfile: src/monitoring/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
     networks:
       - niche-explorer-network
+    depends_on:
+      - genai
     restart: unless-stopped
+    environment:
+      - GENAI_BASE_URL=http://genai:8000
 
-  report-generator:
-    build:
-      context: ./server
-      dockerfile: src/report-generator/Dockerfile
-    ports:
-      - "8081:8081"
-    networks:
-      - niche-explorer-network
-    restart: unless-stopped
-
-  rss-fetcher:
-    build:
-      context: ./server
-      dockerfile: src/rss-fetcher/Dockerfile
-    ports:
-      - "8082:8082"
-    networks:
-      - niche-explorer-network
-    restart: unless-stopped
-
-
-  # GenAI service
+  # GenAI service (FastAPI + Gemini)
   genai:
     build:
       context: ./genai
-      dockerfile: ./Dockerfile
+      dockerfile: Dockerfile
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY?err}
     ports:
-      - "8083:8083"
+      - "8000:8000"
     networks:
       - niche-explorer-network
     restart: unless-stopped

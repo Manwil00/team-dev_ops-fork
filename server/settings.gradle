@@ -2,18 +2,12 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
-        maven { url 'https://repo.spring.io/plugins-release' }
+        maven { url = uri("https://repo.spring.io/plugins-release") }
     }
 }
 
 rootProject.name = 'niche-explorer'
 
-include 'common'
-include 'monitoring'
-include 'report-generator'
-include 'rss-fetcher'
+include 'api-server'
 
-project(':common').projectDir = file('src/common')
-project(':monitoring').projectDir = file('src/monitoring')
-project(':report-generator').projectDir = file('src/report-generator')
-project(':rss-fetcher').projectDir = file('src/rss-fetcher')
+project(':api-server').projectDir = file('src/api-server')
