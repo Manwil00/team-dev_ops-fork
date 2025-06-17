@@ -1,11 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
+
+interface Article {
+  id: string;
+  title: string;
+  link: string;
+  snippet: string;
+}
 
 interface TrendResultProps {
   title: string;
   description: string;
   articleCount: number;
   relevance: number;
+  articles?: Article[];
   darkMode?: boolean;
 }
 
@@ -14,8 +22,10 @@ const TrendResult: React.FC<TrendResultProps> = ({
   description,
   articleCount,
   relevance,
+  articles = [],
   darkMode = false
 }) => {
+  const [showArticles, setShowArticles] = useState(false);
   return (
     <div className={`border ${darkMode ? 'border-white/10' : 'border-black/5'} rounded-lg p-4 mb-4 ${darkMode ? 'hover:border-primary/50' : 'hover:border-primary/20'} transition-all duration-300 ease-in-out group`}>
       <div className="flex justify-between items-start mb-2">
@@ -53,6 +63,27 @@ const TrendResult: React.FC<TrendResultProps> = ({
           }
         `}</style>
       </div>
+
+      {articles.length > 0 && (
+        <button
+          className="text-xs text-primary mt-2 underline"
+          onClick={() => setShowArticles(!showArticles)}
+        >
+          {showArticles ? 'Hide Articles' : `Show ${articles.length} Articles`}
+        </button>
+      )}
+
+      {showArticles && (
+        <ul className="mt-2 list-disc list-inside space-y-1 text-sm">
+          {articles.map((a) => (
+            <li key={a.id}>
+              <a href={a.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                {a.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };

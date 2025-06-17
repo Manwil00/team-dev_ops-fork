@@ -4,60 +4,37 @@ import StartExploringForm from './components/StartExploringForm';
 import AnalysisHistory from './components/AnalysisHistory';
 import { AnalysisItemData } from './components/AnalysisItem';
 import { AspectRatio } from "./components/ui/aspect-ratio";
+import { analyze, AnalyzeRequest } from "./services/analysis";
 
 function App() {
-  const [analyses, setAnalyses] = useState<AnalysisItemData[]>([
-    {
-      id: '1',
-      query: 'Show fast-growing trends in CV for 3D registration',
-      timestamp: 'about 2 hours ago',
-      type: 'Research',
-      trends: [
-        {
-          id: 'trend-1',
-          title: 'Neural Radiance Fields (NeRF)',
-          description: 'NeRF is emerging as a dominant approach for 3D scene representation and novel view synthesis.',
-          articleCount: 12,
-          relevance: 92
-        },
-        {
-          id: 'trend-2',
-          title: 'Diffusion Models for 3D Generation',
-          description: 'Diffusion models are being adapted for 3D content generation and registration tasks.',
-          articleCount: 8,
-          relevance: 85
-        }
-      ]
+  const [analyses, setAnalyses] = useState<AnalysisItemData[]>([]);
+
+  const handleAnalyze = async (query: string) => {
+    try {
+      const req: AnalyzeRequest = { query };
+      const response = await analyze(req);
+
+      const newAnalysis: AnalysisItemData = {
+        id: response.id,
+        query: response.query,
+        timestamp: new Date(response.timestamp).toLocaleString(),
+        type: response.type as 'Research' | 'Community',
+        trends: response.trends.map((t) => ({
+          id: t.id,
+          title: t.title,
+          description: t.description,
+          articleCount: t.articleCount,
+          relevance: t.relevance,
+          articles: t.articles,
+        })),
+        feedUrl: response.feedUrl,
+      };
+
+      setAnalyses([newAnalysis, ...analyses]);
+    } catch (err) {
+      console.error("Analysis failed", err);
+      alert("Failed to analyze query. Please try again.");
     }
-  ]);
-
-  const handleAnalyze = (query: string) => {
-    // In a real app, this would make an API call to get the analysis
-    // For now, we'll just add a mock analysis to the list
-    const newAnalysis: AnalysisItemData = {
-      id: Date.now().toString(),
-      query,
-      timestamp: 'just now',
-      type: Math.random() > 0.5 ? 'Research' : 'Community',
-      trends: [
-        {
-          id: `trend-${Date.now()}-1`,
-          title: 'Mock Trend 1',
-          description: 'This is a mock trend result for demonstration purposes.',
-          articleCount: Math.floor(Math.random() * 15) + 5,
-          relevance: Math.floor(Math.random() * 30) + 70
-        },
-        {
-          id: `trend-${Date.now()}-2`,
-          title: 'Mock Trend 2',
-          description: 'Another mock trend to show how multiple results would appear.',
-          articleCount: Math.floor(Math.random() * 10) + 3,
-          relevance: Math.floor(Math.random() * 40) + 50
-        }
-      ]
-    };
-
-    setAnalyses([newAnalysis, ...analyses]);
   };
 
   const handleRefreshAnalysis = (id: string) => {

@@ -4,12 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCcw, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import TrendResult from './TrendResult';
 
+export interface Article {
+  id: string;
+  title: string;
+  link: string;
+  snippet: string;
+}
+
 export interface Trend {
   id: string;
   title: string;
   description: string;
   articleCount: number;
   relevance: number;
+  articles?: Article[];
 }
 
 export interface AnalysisItemData {
@@ -18,6 +26,7 @@ export interface AnalysisItemData {
   timestamp: string;
   type: 'Research' | 'Community';
   trends: Trend[];
+  feedUrl: string;
 }
 
 interface AnalysisItemProps {
@@ -47,6 +56,9 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({ item, onRefresh }) => {
         <div className="flex items-center mt-2 text-muted-foreground text-sm">
           <Clock className="h-3.5 w-3.5 mr-1.5" />
           <span>{item.timestamp}</span>
+          <a href={item.feedUrl} target="_blank" rel="noopener noreferrer" className="ml-3 text-xs text-blue-600 underline">
+            source
+          </a>
           <Badge
             variant={item.type === 'Research' ? "default" : "secondary"}
             className={`ml-3 px-2 py-0 text-xs h-5 ${
@@ -79,6 +91,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({ item, onRefresh }) => {
                 description={trend.description}
                 articleCount={trend.articleCount}
                 relevance={trend.relevance}
+                articles={trend.articles}
               />
             </div>
           ))}
