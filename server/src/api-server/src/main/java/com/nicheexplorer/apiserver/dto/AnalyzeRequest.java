@@ -4,7 +4,6 @@ public class AnalyzeRequest {
     private String query;
     private boolean autoDetect = true;
     private int maxArticles = 50;
-    private int trendClusters = 3;
     private String source; // optional manual override: "research" or "community"
     private String feed;   // optional manual override, e.g. "cs.CV" or "computervision"
 
@@ -32,14 +31,6 @@ public class AnalyzeRequest {
 
     public void setMaxArticles(int maxArticles) {
         this.maxArticles = maxArticles;
-    }
-
-    public int getTrendClusters() {
-        return trendClusters;
-    }
-
-    public void setTrendClusters(int trendClusters) {
-        this.trendClusters = trendClusters;
     }
 
     public String getSource() {

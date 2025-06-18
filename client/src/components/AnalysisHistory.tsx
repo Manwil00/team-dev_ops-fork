@@ -1,32 +1,64 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import AnalysisItem, { AnalysisItemData } from './AnalysisItem';
+import AnalysisItem from './AnalysisItem';
 
-interface AnalysisHistoryProps {
-  items: AnalysisItemData[];
-  onRefreshAnalysis: (id: string) => void;
+interface Article {
+  id: string;
+  title: string;
+  link: string;
+  snippet: string;
 }
 
-const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({ items, onRefreshAnalysis }) => {
+interface Trend {
+  id: string;
+  title: string;
+  description: string;
+  articleCount: number;
+  relevance: number;
+  articles?: Article[];
+}
+
+interface Analysis {
+  id: string;
+  query: string;
+  timestamp: string;
+  type: 'Research' | 'Community';
+  trends: Trend[];
+}
+
+interface AnalysisHistoryProps {
+  analyses: Analysis[];
+  onDeleteAnalysis: (id: string) => void;
+  darkMode?: boolean;
+}
+
+const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({ 
+  analyses, 
+  onDeleteAnalysis, 
+  darkMode = false 
+}) => {
+  if (analyses.length === 0) {
+    return (
+      <div className={`text-center py-8 ${darkMode ? 'text-white/60' : 'text-muted-foreground'}`}>
+        <p>No analyses yet. Try analyzing a query above.</p>
+      </div>
+    );
+  }
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Analysis History</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {items.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8">No analyses yet. Try analyzing a query above.</p>
-        ) : (
-          items.map(item => (
-            <AnalysisItem
-              key={item.id}
-              item={item}
-              onRefresh={onRefreshAnalysis}
-            />
-          ))
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      {analyses.map((analysis) => (
+        <AnalysisItem
+          key={analysis.id}
+          id={analysis.id}
+          query={analysis.query}
+          timestamp={analysis.timestamp}
+          type={analysis.type}
+          trends={analysis.trends}
+          onDelete={onDeleteAnalysis}
+          darkMode={darkMode}
+        />
+      ))}
+    </div>
   );
 };
 
