@@ -4,9 +4,10 @@ import { ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QueryForm from './QueryForm';
 import SettingsForm from './SettingsForm';
+import { AnalyzeRequest } from "../services/analysis";
 
 interface StartExploringFormProps {
-  onAnalyze: (query: string) => void;
+  onAnalyze: (req: AnalyzeRequest) => void;
 }
 
 const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze }) => {
@@ -15,11 +16,25 @@ const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze }) =>
   const [autoDetect, setAutoDetect] = useState<boolean>(true);
   const [maxArticles, setMaxArticles] = useState<number>(50);
   const [trendClusters, setTrendClusters] = useState<number>(3);
+  const [source, setSource] = useState<"research" | "community">("research");
+  const [feed, setFeed] = useState<string>("cs.CV");
 
   const handleAnalyze = () => {
-    if (query.trim()) {
-      onAnalyze(query);
+    if (!query.trim()) return;
+
+    const req: AnalyzeRequest = {
+      query,
+      autoDetect,
+      maxArticles,
+      trendClusters,
+    };
+
+    if (!autoDetect) {
+      req.source = source;
+      req.feed = feed;
     }
+
+    onAnalyze(req);
   };
 
   const toggleSettings = () => {
@@ -52,7 +67,7 @@ const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze }) =>
           {/* Settings section that expands/collapses */}
           <div 
             className={`overflow-hidden transition-all duration-500 ease-in-out mt-4 border-t ${
-              showSettings ? 'max-h-[500px] opacity-100 pt-4' : 'max-h-0 opacity-0 pt-0 border-transparent'
+              showSettings ? 'max-h-[900px] opacity-100 pt-4' : 'max-h-0 opacity-0 pt-0 border-transparent'
             }`}
           >
             <div className="flex items-center justify-between mb-4">
@@ -73,9 +88,13 @@ const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze }) =>
               maxArticles={maxArticles}
               trendClusters={trendClusters}
               query={query}
+              source={source}
+              feed={feed}
               onAutoDetectChange={setAutoDetect}
               onMaxArticlesChange={setMaxArticles}
               onTrendClustersChange={setTrendClusters}
+              onSourceChange={setSource}
+              onFeedChange={setFeed}
               onBackToInput={() => setShowSettings(false)}
               onAnalyze={handleAnalyze}
             />

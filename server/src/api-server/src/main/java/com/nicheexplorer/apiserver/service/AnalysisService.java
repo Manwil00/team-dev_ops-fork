@@ -38,9 +38,20 @@ public class AnalysisService {
     }
 
     public AnalysisResponse analyze(AnalyzeRequest request) {
-        ClassificationResponse cls = classifier.classify(request.getQuery());
-        String type = cls != null && "community".equalsIgnoreCase(cls.source()) ? "Community" : "Research";
-        String feedId = cls != null ? cls.feed() : (type.equals("Research") ? "cs.CV" : "computervision");
+        boolean hasManual = request.getSource() != null && !request.getSource().isBlank()
+                && request.getFeed() != null && !request.getFeed().isBlank();
+
+        String type;
+        String feedId;
+
+        if (hasManual) {
+            type = "community".equalsIgnoreCase(request.getSource()) ? "Community" : "Research";
+            feedId = request.getFeed();
+        } else {
+            ClassificationResponse cls = classifier.classify(request.getQuery());
+            type = cls != null && "community".equalsIgnoreCase(cls.source()) ? "Community" : "Research";
+            feedId = cls != null ? cls.feed() : (type.equals("Research") ? "cs.CV" : "computervision");
+        }
         String feedUrl = type.equals("Research") ? "https://rss.arxiv.org/rss/" + feedId : "https://www.reddit.com/r/" + feedId + ".rss";
 
         List<SyndEntry> entries = feedFetch.fetch(feedUrl, request.getMaxArticles());

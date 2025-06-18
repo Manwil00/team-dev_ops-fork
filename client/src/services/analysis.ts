@@ -28,6 +28,8 @@ export interface AnalyzeRequest {
   autoDetect?: boolean;
   maxArticles?: number;
   trendClusters?: number;
+  source?: string; // "research" | "community"
+  feed?: string;   // e.g. "cs.CV" or "computervision"
 }
 
 export async function analyze(request: AnalyzeRequest): Promise<AnalysisResponse> {

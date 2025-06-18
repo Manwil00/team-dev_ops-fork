@@ -9,9 +9,8 @@ import { analyze, AnalyzeRequest } from "./services/analysis";
 function App() {
   const [analyses, setAnalyses] = useState<AnalysisItemData[]>([]);
 
-  const handleAnalyze = async (query: string) => {
+  const handleAnalyze = async (req: AnalyzeRequest) => {
     try {
-      const req: AnalyzeRequest = { query };
       const response = await analyze(req);
 
       const newAnalysis: AnalysisItemData = {
