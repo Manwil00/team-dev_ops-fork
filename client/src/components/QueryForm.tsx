@@ -8,7 +8,7 @@ interface QueryFormProps {
   query: string;
   onQueryChange: (query: string) => void;
   onAnalyze: () => void;
-  onSwitchToSettings: () => void;
+  onShowSettings: () => void;
   showSettings?: boolean;
 }
 
@@ -16,7 +16,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
   query, 
   onQueryChange, 
   onAnalyze, 
-  onSwitchToSettings,
+  onShowSettings,
   showSettings = false
 }) => {
   return (
@@ -31,7 +31,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
           className="w-full transition-all duration-200"
         />
         <p className="text-sm text-muted-foreground">
-          The app will automatically detect if your query is research or community focused
+          AI will automatically discover semantic topic clusters using LangChain vector embeddings
         </p>
       </div>
 
@@ -39,7 +39,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
         <div className="relative">
           <Button 
             variant="outline"
-            onClick={onSwitchToSettings}
+            onClick={onShowSettings}
             className="border-black/10 transition-all duration-300 hover:border-primary/50"
           >
             <Settings className="settings-icon h-4 w-4 mr-2" />

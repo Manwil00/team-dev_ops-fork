@@ -1,22 +1,46 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import StartExploringForm from './components/StartExploringForm';
 import AnalysisHistory from './components/AnalysisHistory';
-import { AnalysisItemData } from './components/AnalysisItem';
 import { AspectRatio } from "./components/ui/aspect-ratio";
-import { analyze, AnalyzeRequest } from "./services/analysis";
+import { analyze, getAnalysisHistory, deleteAnalysis, AnalyzeRequest } from "./services/analysis";
+
+interface Article {
+  id: string;
+  title: string;
+  link: string;
+  snippet: string;
+}
+
+interface Trend {
+  id: string;
+  title: string;
+  description: string;
+  articleCount: number;
+  relevance: number;
+  articles?: Article[];
+}
+
+interface Analysis {
+  id: string;
+  query: string;
+  timestamp: string;
+  type: 'Research' | 'Community';
+  trends: Trend[];
+}
 
 function App() {
-  const [analyses, setAnalyses] = useState<AnalysisItemData[]>([]);
+  const [analyses, setAnalyses] = useState<Analysis[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   const handleAnalyze = async (req: AnalyzeRequest) => {
     try {
       const response = await analyze(req);
 
-      const newAnalysis: AnalysisItemData = {
+      const newAnalysis: Analysis = {
         id: response.id,
         query: response.query,
-        timestamp: new Date(response.timestamp).toLocaleString(),
+        timestamp: response.timestamp,
         type: response.type as 'Research' | 'Community',
         trends: response.trends.map((t) => ({
           id: t.id,
@@ -26,7 +50,6 @@ function App() {
           relevance: t.relevance,
           articles: t.articles,
         })),
-        feedUrl: response.feedUrl,
       };
 
       setAnalyses([newAnalysis, ...analyses]);
@@ -36,9 +59,49 @@ function App() {
     }
   };
 
-  const handleRefreshAnalysis = (id: string) => {
-    // In a real app, this would refresh the specific analysis
-    console.log('Refreshing analysis:', id);
+  // Load analysis history from database on component mount
+  useEffect(() => {
+    const loadAnalysisHistory = async () => {
+      try {
+        setIsLoadingHistory(true);
+        const historyData = await getAnalysisHistory();
+        
+        const analysisItems: Analysis[] = historyData.map((analysis) => ({
+          id: analysis.id,
+          query: analysis.query,
+          timestamp: analysis.timestamp,
+          type: analysis.type as 'Research' | 'Community',
+          trends: analysis.trends.map((t) => ({
+            id: t.id,
+            title: t.title,
+            description: t.description,
+            articleCount: t.articleCount,
+            relevance: t.relevance,
+            articles: t.articles,
+          })),
+        }));
+        
+        setAnalyses(analysisItems);
+      } catch (error) {
+        console.error('Failed to load analysis history:', error);
+        // Don't show error to user, just log it - app can still function
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadAnalysisHistory();
+  }, []);
+
+  const handleDeleteAnalysis = async (id: string) => {
+    try {
+      await deleteAnalysis(id);
+      // Remove from local state after successful deletion
+      setAnalyses(analyses.filter(a => a.id !== id));
+    } catch (error) {
+      console.error('Failed to delete analysis:', error);
+      alert('Failed to delete analysis. Please try again.');
+    }
   };
 
   return (
@@ -63,10 +126,19 @@ function App() {
         <main className="container mx-auto py-8 px-4 max-w-4xl">
           <div className="space-y-8">
             <StartExploringForm onAnalyze={handleAnalyze} />
-            <AnalysisHistory 
-              items={analyses}
-              onRefreshAnalysis={handleRefreshAnalysis}
-            />
+            
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 border border-black/10">
+              <h2 className="text-xl font-semibold mb-4">Analysis History</h2>
+              {isLoadingHistory ? (
+                <p className="text-muted-foreground text-center py-8">Loading analysis history...</p>
+              ) : (
+                <AnalysisHistory 
+                  analyses={analyses} 
+                  onDeleteAnalysis={handleDeleteAnalysis}
+                  darkMode={false}
+                />
+              )}
+            </div>
           </div>
         </main>
       </div>

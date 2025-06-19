@@ -1,2 +1,17 @@
 genai:
-  base-url: http://localhost:8000 
+  base-url: http://genai:8000 
+
+spring:
+  datasource:
+    url: jdbc:postgresql://db:5432/niche
+    username: niche
+    password: nichepw
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+flyway:
+  baseline-on-migrate: true 

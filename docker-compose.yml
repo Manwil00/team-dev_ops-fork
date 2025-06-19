@@ -23,6 +23,7 @@ services:
       - niche-explorer-network
     depends_on:
       - genai
+      - db
     restart: unless-stopped
     environment:
       - GENAI_BASE_URL=http://genai:8000
@@ -40,6 +41,25 @@ services:
       - niche-explorer-network
     restart: unless-stopped
 
+  # Postgres with pgvector extension
+  db:
+    image: ankane/pgvector:latest
+    environment:
+      POSTGRES_USER: niche
+      POSTGRES_PASSWORD: nichepw
+      POSTGRES_DB: niche
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - niche-explorer-network
+    restart: unless-stopped
+
 networks:
   niche-explorer-network:
-    driver: bridge 
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local 

@@ -13,10 +13,7 @@ const Header: React.FC = () => {
             />
           </div>
           <nav className="flex items-center gap-6 text-sm font-medium">
-            <a href="#" className="text-foreground/70 hover:text-foreground transition-colors">Dashboard</a>
-            <a href="#" className="text-foreground/70 hover:text-foreground transition-colors">Explore</a>
-            <a href="#" className="text-foreground/70 hover:text-foreground transition-colors">Settings</a>
-            {/* Add more navigation items here if needed */}
+            {/* Add navigation items here if needed */}
           </nav>
         </div>
       </div>
@@ -24,4 +21,4 @@ const Header: React.FC = () => {
   );
 };
 
-export default Header; 
+export default Header;

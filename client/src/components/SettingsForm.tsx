@@ -8,13 +8,11 @@ import { BarChart3 } from "lucide-react";
 interface SettingsFormProps {
   autoDetect: boolean;
   maxArticles: number;
-  trendClusters: number;
   query: string;
   source: "research" | "community";
   feed: string;
   onAutoDetectChange: (checked: boolean) => void;
   onMaxArticlesChange: (value: number) => void;
-  onTrendClustersChange: (value: number) => void;
   onSourceChange: (value: "research" | "community") => void;
   onFeedChange: (value: string) => void;
   onBackToInput: () => void;
@@ -24,13 +22,11 @@ interface SettingsFormProps {
 const SettingsForm: React.FC<SettingsFormProps> = ({
   autoDetect,
   maxArticles,
-  trendClusters,
   query,
   source,
   feed,
   onAutoDetectChange,
   onMaxArticlesChange,
-  onTrendClustersChange,
   onSourceChange,
   onFeedChange,
   onBackToInput,
@@ -63,19 +59,9 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
           onChange={(e) => onMaxArticlesChange(parseInt(e.target.value, 10) || 1)}
           className="w-full"
         />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="trend-clusters">Number of trend clusters to identify</Label>
-        <Input
-          id="trend-clusters"
-          type="number"
-          min={1}
-          max={10}
-          value={trendClusters}
-          onChange={(e) => onTrendClustersChange(parseInt(e.target.value, 10) || 1)}
-          className="w-full"
-        />
+        <p className="text-sm text-muted-foreground">
+          LangChain will automatically determine optimal topic clusters using semantic analysis
+        </p>
       </div>
 
       {/* Manual source selection */}
@@ -110,6 +96,7 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
             </p>
           </div>
         </div>
+
       )}
 
       <div className="flex justify-between pt-4 mt-auto">
