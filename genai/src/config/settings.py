@@ -1,8 +1,4 @@
 import os
-from dotenv import load_dotenv
-
-# Load .env file from the root directory (go up 3 levels from this file)
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '.env'))
 
 class Settings:
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY")

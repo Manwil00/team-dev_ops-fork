@@ -1,14 +1,10 @@
 import json
 import logging
 import os
-from dotenv import load_dotenv
 import google.generativeai as genai
 from ..config.settings import settings
 
 logger = logging.getLogger(__name__)
-
-# Load .env file from the root directory (go up 3 levels from this file)
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '..', '.env'))
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
