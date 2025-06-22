@@ -27,6 +27,7 @@ interface Analysis {
   timestamp: string;
   type: 'Research' | 'Community';
   trends: Trend[];
+  feedUrl?: string;
 }
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
         query: response.query,
         timestamp: response.timestamp,
         type: response.type as 'Research' | 'Community',
+        feedUrl: response.feedUrl,
         trends: response.trends.map((t) => ({
           id: t.id,
           title: t.title,
@@ -71,6 +73,7 @@ function App() {
           query: analysis.query,
           timestamp: analysis.timestamp,
           type: analysis.type as 'Research' | 'Community',
+          feedUrl: analysis.feedUrl,
           trends: analysis.trends.map((t) => ({
             id: t.id,
             title: t.title,

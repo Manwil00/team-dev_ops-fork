@@ -1,13 +1,9 @@
 # Use Python 3.11 as base image
 FROM python:3.11-slim
 
-# Install system dependencies for vector databases and ML libraries
+# Install minimal system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
-    g++ \
-    libblas-dev \
-    liblapack-dev \
-    libopenblas-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set environment variables for faster builds
@@ -24,24 +20,13 @@ COPY config/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --upgrade pip && \
-    pip install --only-binary=all -r requirements.txt
+    pip install -r requirements.txt
 
 # Copy source code
 COPY src/ ./src/
 
-# Create model cache directory for runtime model downloads
-RUN mkdir -p /app/models && chmod 755 /app/models
-
-# Set environment variables for model caching
-ENV TRANSFORMERS_CACHE=/app/models
-ENV SENTENCE_TRANSFORMERS_HOME=/app/models
-
 # Set environment variables
 ENV PYTHONPATH=/app
-ENV TOKENIZERS_PARALLELISM=false
-
-# Pre-download sentence transformer model for faster startup
-RUN python3 src/download_model.py || echo "Model download failed, will download on first use"
 
 EXPOSE 8000
 

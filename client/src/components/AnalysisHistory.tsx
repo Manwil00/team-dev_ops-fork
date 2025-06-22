@@ -23,6 +23,7 @@ interface Analysis {
   timestamp: string;
   type: 'Research' | 'Community';
   trends: Trend[];
+  feedUrl?: string;
 }
 
 interface AnalysisHistoryProps {
@@ -54,6 +55,7 @@ const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
           timestamp={analysis.timestamp}
           type={analysis.type}
           trends={analysis.trends}
+          feedUrl={analysis.feedUrl}
           onDelete={onDeleteAnalysis}
           darkMode={darkMode}
         />

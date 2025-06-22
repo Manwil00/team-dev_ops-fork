@@ -3,7 +3,7 @@ LangChain-based semantic topic discovery service using vector embeddings
 and semantic clustering for intelligent trend identification.
 """
 
-import feedparser
+
 import logging
 from typing import List, Dict, Any, Optional
 from collections import defaultdict, Counter
@@ -16,14 +16,16 @@ from sklearn.decomposition import PCA
 # LangChain imports
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
-from langchain_community.embeddings import SentenceTransformerEmbeddings, HuggingFaceEmbeddings
 
-# Alternative embedding options
+# Google embeddings
 try:
     from langchain_google_genai import GoogleGenerativeAIEmbeddings
     GOOGLE_AVAILABLE = True
 except ImportError:
     GOOGLE_AVAILABLE = False
+
+# Import ArXiv service
+from .arxiv_service import arxiv_service
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +34,13 @@ class LangChainTrendsService:
     Advanced semantic topic discovery using LangChain vector embeddings.
     
     This service:
-    1. Converts RSS articles to vector embeddings using sentence-transformers
+    1. Converts ArXiv articles to vector embeddings using Google Gemini
     2. Uses semantic clustering (DBSCAN) to discover topic groups
     3. Identifies trending topics based on cluster density and semantic similarity
     4. Generates human-readable topic titles using the most representative articles
     """
     
-    def __init__(self, use_google_embeddings: bool = False):
+    def __init__(self, use_google_embeddings: bool = True):
         self.use_google_embeddings = use_google_embeddings and GOOGLE_AVAILABLE
         self.embeddings = None
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -49,37 +51,42 @@ class LangChainTrendsService:
         self._initialize_embeddings()
     
     def _initialize_embeddings(self):
-        """Initialize embedding model - Google Gemini or Sentence Transformers"""
+        """Initialize Google Gemini embeddings"""
         try:
-            if self.use_google_embeddings:
+            if self.use_google_embeddings and GOOGLE_AVAILABLE:
                 self.embeddings = GoogleGenerativeAIEmbeddings(
                     model="models/embedding-001"
                 )
                 logger.info("Initialized Google Generative AI embeddings")
             else:
-                # Use high-quality sentence transformer for semantic understanding
-                self.embeddings = SentenceTransformerEmbeddings(
-                    model_name="all-MiniLM-L6-v2"  # Fast, good quality embeddings
-                )
-                logger.info("Initialized SentenceTransformer embeddings")
+                self.embeddings = None
+                logger.info("Google embeddings not available, using keyword-only mode")
         except Exception as e:
-            logger.error(f"Failed to initialize embeddings: {e}")
-            # Fallback to basic sentence transformers
-            self.embeddings = SentenceTransformerEmbeddings(
-                model_name="all-MiniLM-L6-v2"
-            )
+            logger.error(f"Failed to initialize Google embeddings: {e}")
+            # Fallback: set to None and use simple keyword grouping only
+            self.embeddings = None
+            logger.warning("Using keyword-only mode due to embedding initialization failure")
     
-    def extract_trending_topics(self, feed_url: str, max_articles: int = 50, 
+    def extract_trending_topics(self, query_or_feed: str, max_articles: int = 50, 
                                min_frequency: int = 2) -> List[Dict[str, Any]]:
         """
-        Extract trending topics using simplified keyword-based approach.
-        This is a simplified version while debugging the semantic clustering.
+        Extract trending topics using ArXiv API with keyword-based approach.
+        
+        Args:
+            query_or_feed: Can be:
+                - ArXiv category: "cs.CV"
+                - Advanced ArXiv query: 'all:"graph neural network"+AND+cat:cs.CV'
+                - Legacy RSS URL (will be converted)
+                - Natural language query
         """
         
-        # Step 1: Fetch articles
-        logger.info(f"DEBUG: Starting extract_trending_topics with feed_url={feed_url}, max_articles={max_articles}, min_frequency={min_frequency}")
-        articles = self._fetch_articles(feed_url, max_articles)
-        logger.info(f"DEBUG: Fetched {len(articles)} articles")
+        # Step 1: Fetch articles using ArXiv API
+        logger.info(f"DEBUG: Starting extract_trending_topics with query_or_feed={query_or_feed}, max_articles={max_articles}, min_frequency={min_frequency}")
+        
+        # Convert legacy RSS URLs to ArXiv queries
+        arxiv_query = self._convert_to_arxiv_query(query_or_feed)
+        articles = self._fetch_articles_from_arxiv(arxiv_query, max_articles)
+        logger.info(f"DEBUG: Fetched {len(articles)} articles from ArXiv")
         
         if len(articles) < 3:
             logger.info(f"DEBUG: Insufficient articles ({len(articles)}) for trend analysis")
@@ -355,35 +362,30 @@ class LangChainTrendsService:
         
         return filtered_topics
     
-    def _fetch_articles(self, feed_url: str, max_articles: int) -> List[Dict[str, Any]]:
-        """Fetch articles from RSS feed"""
+    def _convert_to_arxiv_query(self, query_or_feed: str) -> str:
+        """Convert various input formats to ArXiv API query"""        
+        # If it's Reddit or other community feeds, skip (not ArXiv)
+        if "reddit.com" in query_or_feed:
+            logger.warning(f"Reddit feeds not supported in ArXiv service: {query_or_feed}")
+            return "cat:cs.AI"  # fallback to AI category
+        
+        # Otherwise, pass to ArXiv service for processing
+        return query_or_feed
+    
+    def _fetch_articles_from_arxiv(self, arxiv_query: str, max_articles: int) -> List[Dict[str, Any]]:
+        """Fetch articles using ArXiv API"""
         try:
-            logger.info(f"Fetching articles from {feed_url}")
-            feed = feedparser.parse(feed_url)
-            
-            if not feed.entries:
-                logger.warning(f"No entries found in feed: {feed_url}")
-                return []
-            
-            articles = []
-            for entry in feed.entries[:max_articles]:
-                articles.append({
-                    'title': entry.get('title', ''),
-                    'link': entry.get('link', ''),
-                    'summary': entry.get('summary', ''),
-                    'description': entry.get('description', ''),
-                    'published': entry.get('published', ''),
-                    'author': entry.get('author', '')
-                })
-            
-            logger.info(f"Successfully fetched {len(articles)} articles")
+            logger.info(f"Fetching articles from ArXiv with query: {arxiv_query}")
+            articles = arxiv_service.fetch_articles(arxiv_query, max_articles)
+            logger.info(f"Successfully fetched {len(articles)} articles from ArXiv")
             return articles
-            
         except Exception as e:
-            logger.error(f"Error fetching RSS feed {feed_url}: {e}")
+            logger.error(f"Error fetching ArXiv articles: {e}")
             return []
 
-    def generate_topic_visualization(self, feed_url: str, max_articles: int = 50, 
+
+
+    def generate_topic_visualization(self, query_or_feed: str, max_articles: int = 50, 
                                    min_frequency: int = 2) -> Dict[str, Any]:
         """
         Generate PCA visualization data for topic relationships and overlap analysis.
@@ -393,7 +395,7 @@ class LangChainTrendsService:
         
         try:
             # First get the topics
-            topics = self.extract_trending_topics(feed_url, max_articles, min_frequency)
+            topics = self.extract_trending_topics(query_or_feed, max_articles, min_frequency)
             
             if len(topics) < 2:
                 return {
@@ -476,5 +478,5 @@ class LangChainTrendsService:
             logger.error(f"Error generating topic visualization: {e}")
             return {"error": f"Visualization generation failed: {str(e)}"}
 
-# Create service instance
-langchain_trends_service = LangChainTrendsService(use_google_embeddings=False) 
+# Create service instance with Google embeddings enabled
+langchain_trends_service = LangChainTrendsService(use_google_embeddings=True) 
