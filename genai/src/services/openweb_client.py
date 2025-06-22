@@ -15,6 +15,11 @@ from ..models.schemas import ClassifyResponse
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Define the default source and feed for classification
+DEFAULT_SOURCE = "research"
+DEFAULT_FEED = "cs.CV"
+
+
 # Environment configuration
 CHAIR_API_KEY = os.getenv("CHAIR_API_KEY")
 API_URL = "https://gpu.aet.cit.tum.de/api/chat/completions"
@@ -127,11 +132,8 @@ class OpenWebClient:
             if output.startswith("```"):
                 output = output.strip().strip("```json").strip("```").strip()
 
-            # TODO is this double ClassifyResponse call necessary?
-            data = ClassifyResponse.parse_raw(output)
-            logger.info(f"Parsed classification data: {data.source=}, {data.feed=}")
-            return data.source, data.feed
+            return ClassifyResponse.parse_raw(output)
 
         except Exception as e:
-            logger.error("Failed to classify query: %s", e)
-            return "research", "cs.CV"
+            logger.error(f"Failed to classify query: {e}, falling back to default source {DEFAULT_SOURCE} and feed {DEFAULT_FEED}.")
+            return ClassifyResponse(source=DEFAULT_SOURCE, feed=DEFAULT_FEED)
