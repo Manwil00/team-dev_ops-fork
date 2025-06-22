@@ -20,12 +20,19 @@ class GoogleGenAIClient:
         pass
     
     def classify_source(self, query: str) -> tuple[str, str]:
-        """Classify query to determine research or community source"""
+        """Classify query to determine research or community source and generate appropriate feed identifier"""
         prompt = (
-            "You are an assistant that decides which single RSS feed to query.\n"
+            "You are an assistant that classifies research queries and generates ArXiv search parameters.\n"
             "Return ONLY valid JSON with keys 'source' and 'feed'.\n"
             "- source: 'research' or 'community'.\n"
-            "- feed: if research, give the arXiv subject ID only (e.g. cs.CV); if community, give the subreddit name only (e.g. computervision).\n"
+            "- feed: \n"
+            "  * For research: arXiv category (e.g. cs.CV, cs.AI, cs.LG) OR advanced query (e.g. 'all:\"graph neural network\"+AND+cat:cs.CV')\n"
+            "  * For community: subreddit name only (e.g. computervision)\n"
+            "For research queries, prefer advanced ArXiv queries when specific terms are mentioned.\n"
+            "Examples:\n"
+            "- 'computer vision trends' -> cs.CV\n"
+            "- 'graph neural networks in computer vision' -> 'all:\"graph neural network\"+AND+cat:cs.CV'\n"
+            "- 'transformer architectures' -> 'all:\"transformer architecture\"+AND+cat:cs.LG'\n"
             f"User query: {query}"
         )
         
