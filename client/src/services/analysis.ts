@@ -19,7 +19,7 @@ export interface AnalysisResponse {
   query: string;
   timestamp: string;
   type: string;
-  feedUrl: string;
+  feedUrl?: string;
   trends: TrendDto[];
 }
 

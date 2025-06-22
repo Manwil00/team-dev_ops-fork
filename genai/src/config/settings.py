@@ -14,9 +14,9 @@ class Settings:
     EMBEDDING_MODEL: str = "models/embedding-001"
     GENERATION_MODEL: str = "gemini-2.0-flash"
     
-    # Feed URLs
-    RESEARCH_FEED: str = "https://rss.arxiv.org/rss/cs.CV"
-    COMMUNITY_FEED: str = "https://www.reddit.com/r/computervision/.rss"
+    # Default ArXiv categories and Reddit feeds
+    DEFAULT_RESEARCH_CATEGORY: str = "cs.CV"
+    DEFAULT_COMMUNITY_FEED: str = "https://www.reddit.com/r/computervision/.rss"
     
     def __post_init__(self):
         if not self.GOOGLE_API_KEY:

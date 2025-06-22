@@ -26,6 +26,7 @@ interface AnalysisItemProps {
   timestamp: string;
   type: 'Research' | 'Community';
   trends: Trend[];
+  feedUrl?: string;  // Add feedUrl to show the actual query used
   onDelete: (id: string) => void;
   darkMode?: boolean;
 }
@@ -36,10 +37,12 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
   timestamp,
   type,
   trends,
+  feedUrl,
   onDelete,
   darkMode = false
 }) => {
   const [showTrends, setShowTrends] = useState(false);
+  const [showQueryDetails, setShowQueryDetails] = useState(false);
 
   const formatDate = (isoString: string) => {
     const date = new Date(isoString);
@@ -53,6 +56,55 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
   };
 
   const totalArticles = trends.reduce((sum, trend) => sum + trend.articleCount, 0);
+
+  // Parse the query type and details
+  const getQueryInfo = () => {
+    if (!feedUrl) {
+      return null;
+    }
+    
+    // Check if it's a Reddit URL
+    if (feedUrl.includes('reddit.com')) {
+      const subreddit = feedUrl.match(/\/r\/([^\/\.]+)/)?.[1];
+      return {
+        type: 'Reddit Community',
+        details: subreddit ? `r/${subreddit}` : feedUrl,
+        queryType: 'community'
+      };
+    }
+    
+    // Simple ArXiv category first (to avoid confusion with advanced queries)
+    if (feedUrl.match(/^cat:[a-z]+\.[A-Z]{2,}$/) || feedUrl.match(/^[a-z]+\.[A-Z]{2,}$/)) {
+      const category = feedUrl.startsWith('cat:') ? feedUrl.replace('cat:', '') : feedUrl;
+      return {
+        type: 'ArXiv Category',
+        details: category,
+        queryType: 'simple',
+        category: category
+      };
+    }
+    
+    // Check if it's an ArXiv advanced query (more complex patterns)
+    if (feedUrl.includes('all:') || feedUrl.includes('+AND+') || (feedUrl.includes('cat:') && (feedUrl.includes('+') || feedUrl.includes(' ')))) {
+      return {
+        type: 'ArXiv Advanced Query',
+        details: feedUrl,
+        queryType: 'advanced',
+        category: feedUrl.match(/cat:([^+\s]+)/)?.[1],
+        searchTerms: feedUrl.match(/all:"([^"]+)"/)?.[1]
+      };
+    }
+    
+
+    
+    return {
+      type: 'Unknown',
+      details: feedUrl,
+      queryType: 'other'
+    };
+  };
+
+  const queryInfo = getQueryInfo();
 
   return (
     <div className={`border rounded-lg p-4 mb-4 ${
@@ -100,21 +152,115 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
           <span className={`${darkMode ? 'text-white/80' : 'text-foreground'} font-medium`}>
             {trends.length} topics • {totalArticles} articles
           </span>
+          {queryInfo && (
+            <Badge 
+              variant="outline" 
+              className={`${
+                queryInfo.queryType === 'advanced' 
+                  ? (darkMode ? 'border-purple-400/30 text-purple-400' : 'border-purple-600/20 text-purple-600')
+                  : queryInfo.queryType === 'simple'
+                  ? (darkMode ? 'border-blue-400/30 text-blue-400' : 'border-blue-600/20 text-blue-600')
+                  : (darkMode ? 'border-green-400/30 text-green-400' : 'border-green-600/20 text-green-600')
+              } text-xs`}
+            >
+              {queryInfo.type}
+            </Badge>
+          )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowTrends(!showTrends)}
-          className={`text-xs ${
-            darkMode 
-              ? 'text-white/80 hover:text-white' 
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <span>View All Topics</span>
-          {showTrends ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowTrends(!showTrends)}
+            className={`text-xs ${
+              darkMode 
+                ? 'text-white/80 hover:text-white' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <span>View All Topics</span>
+            {showTrends ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
+          </Button>
+          {queryInfo && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowQueryDetails(!showQueryDetails)}
+              className={`text-xs ${
+                darkMode 
+                  ? 'text-white/80 hover:text-white' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <span>Query Details</span>
+              {showQueryDetails ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {showQueryDetails && queryInfo && (
+        <div className={`mt-4 p-4 rounded-lg ${
+          darkMode ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-black/5'
+        }`}>
+          <h4 className={`font-medium text-sm mb-3 ${darkMode ? 'text-white' : 'text-foreground'}`}>
+            Search Query Details
+          </h4>
+          
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span className={`text-xs font-medium ${darkMode ? 'text-white/80' : 'text-muted-foreground'}`}>
+                  Query Type:
+                </span>
+                <p className={`text-sm font-mono ${darkMode ? 'text-white' : 'text-foreground'}`}>
+                  {queryInfo.type}
+                </p>
+              </div>
+              
+              {queryInfo.category && (
+                <div>
+                  <span className={`text-xs font-medium ${darkMode ? 'text-white/80' : 'text-muted-foreground'}`}>
+                    ArXiv Category:
+                  </span>
+                  <p className={`text-sm font-mono ${darkMode ? 'text-white' : 'text-foreground'}`}>
+                    {queryInfo.category}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {queryInfo.searchTerms && (
+              <div>
+                <span className={`text-xs font-medium ${darkMode ? 'text-white/80' : 'text-muted-foreground'}`}>
+                  Search Terms:
+                </span>
+                <p className={`text-sm ${darkMode ? 'text-white' : 'text-foreground'}`}>
+                  "{queryInfo.searchTerms}"
+                </p>
+              </div>
+            )}
+
+            <div>
+              <span className={`text-xs font-medium ${darkMode ? 'text-white/80' : 'text-muted-foreground'}`}>
+                {queryInfo.queryType === 'advanced' ? 'ArXiv API Query:' : 'Feed URL:'}
+              </span>
+              <div className={`mt-1 p-2 rounded text-xs font-mono break-all ${
+                darkMode ? 'bg-black/30 text-white/90' : 'bg-white border text-foreground'
+              }`}>
+                {queryInfo.details}
+              </div>
+            </div>
+
+            {queryInfo.queryType === 'advanced' && (
+              <div className={`text-xs ${darkMode ? 'text-white/60' : 'text-muted-foreground'}`}>
+                💡 This advanced query searches for specific terms within the selected ArXiv category, 
+                providing more targeted results than a simple category search.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showTrends && (
         <div className="space-y-3 mt-4">

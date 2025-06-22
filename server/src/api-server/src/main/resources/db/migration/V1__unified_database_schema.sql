@@ -83,7 +83,7 @@ WITH (lists = 100); -- Optimize for up to ~10,000 vectors
 COMMENT ON TABLE analysis IS 'Tracks complete analysis sessions with metadata about the query and source';
 COMMENT ON TABLE trend IS 'Individual trends discovered within an analysis, with vector embeddings for similarity search';
 COMMENT ON TABLE article IS 'Individual articles that belong to trends, with their own vector embeddings';
-COMMENT ON COLUMN trend.embedding IS '768-dimensional vector embedding for semantic similarity search using sentence-transformers';
+COMMENT ON COLUMN trend.embedding IS '768-dimensional vector embedding for semantic similarity search using Google Gemini';
 COMMENT ON COLUMN article.embedding IS '768-dimensional vector embedding of article content for detailed similarity search';
 COMMENT ON INDEX trend_embedding_idx IS 'IVFFlat index for fast cosine similarity search on trend embeddings';
 COMMENT ON INDEX article_embedding_idx IS 'IVFFlat index for fast cosine similarity search on article embeddings'; 

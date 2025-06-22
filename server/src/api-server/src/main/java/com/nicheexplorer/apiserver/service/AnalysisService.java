@@ -22,18 +22,15 @@ public class AnalysisService {
     // Using Python NLP service for intelligent trend extraction instead of manual stop words
 
     private final SourceClassificationClient classifier;
-    private final FeedFetchService feedFetch;
     private final JdbcTemplate jdbc;
     private final TrendsClient trendsClient;
     private final EmbeddingClient embedClient;
 
     public AnalysisService(SourceClassificationClient classifier,
-                           FeedFetchService feedFetch,
                            JdbcTemplate jdbc,
                            TrendsClient trendsClient,
                            EmbeddingClient embedClient) {
         this.classifier = classifier;
-        this.feedFetch = feedFetch;
         this.jdbc = jdbc;
         this.trendsClient = trendsClient;
         this.embedClient = embedClient;
@@ -54,7 +51,18 @@ public class AnalysisService {
             type = cls != null && "community".equalsIgnoreCase(cls.source()) ? "Community" : "Research";
             feedId = cls != null ? cls.feed() : (type.equals("Research") ? "cs.CV" : "computervision");
         }
-        String feedUrl = type.equals("Research") ? "https://rss.arxiv.org/rss/" + feedId : "https://www.reddit.com/r/" + feedId + ".rss";
+        // For research queries, use ArXiv API format; for community, keep RSS
+        String feedUrl;
+        if (type.equals("Research")) {
+            // Check if feedId is already an advanced ArXiv query
+            if (feedId.contains("+") || feedId.contains(":")) {
+                feedUrl = feedId;  // Use advanced query as-is
+            } else {
+                feedUrl = "cat:" + feedId;  // Convert simple category to ArXiv API format
+            }
+        } else {
+            feedUrl = "https://www.reddit.com/r/" + feedId + ".rss";
+        }
 
         // Use Python NLP service for advanced trend extraction
         TrendsClient.TrendsResponse trendsResponse = trendsClient.extractTrends(
