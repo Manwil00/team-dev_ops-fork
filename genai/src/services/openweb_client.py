@@ -2,11 +2,9 @@
 # https://gist.github.com/robertjndw/92f7b1a5a8818e0244fa99f4f6069b39
 
 import os
-import json
 import logging
 import requests
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any, List, Optional
 from langchain.llms.base import LLM
 from langchain_core.prompts import PromptTemplate
 from langchain.callbacks.manager import CallbackManagerForLLMRun
