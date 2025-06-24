@@ -16,7 +16,7 @@ class EmbeddingService:
         self.db_client = chromadb.PersistentClient(path="/app/chroma_db")
         self.collection = self.db_client.get_or_create_collection(name="arxiv_embeddings")
 
-    def embed_text(self, text: str) -> List[float]:
+    async def embed_text(self, text: str) -> List[float]:
         """Generates a single, non-cached embedding for a given text."""
         try:
             return self.embeddings_client.embed_query(text)
@@ -31,6 +31,89 @@ class EmbeddingService:
         except Exception as e:
             logger.error("Batch embedding failed: %s", e)
             return [[] for _ in texts]
+
+    async def embed_batch_with_cache(self, texts: List[str], ids: List[str]) -> Dict:
+        """Generate embeddings for multiple texts with ChromaDB caching"""
+        vectors = []
+        cached_count = 0
+        
+        # Try to get existing embeddings from ChromaDB
+        try:
+            cached_results = self.collection.get(
+                ids=ids, 
+                include=["embeddings"]
+            )
+            cached_embeddings = {id: emb for id, emb in zip(cached_results['ids'], cached_results['embeddings']) if emb}
+            cached_count = len(cached_embeddings)
+        except Exception:
+            cached_embeddings = {}
+        
+        # Generate embeddings for texts not in cache
+        new_texts = []
+        new_ids = []
+        for i, (text, doc_id) in enumerate(zip(texts, ids)):
+            if doc_id in cached_embeddings:
+                vectors.append(cached_embeddings[doc_id])
+            else:
+                vectors.append(None)  # Placeholder
+                new_texts.append(text)
+                new_ids.append((i, doc_id))
+        
+        # Generate new embeddings if needed
+        if new_texts:
+            new_embeddings = self._embed_batch(new_texts)
+            
+            # Store new embeddings in ChromaDB
+            try:
+                self.collection.add(
+                    embeddings=new_embeddings,
+                    documents=new_texts,
+                    ids=[doc_id for _, doc_id in new_ids]
+                )
+            except Exception:
+                pass  # Continue even if caching fails
+            
+            # Insert new embeddings into correct positions
+            for (idx, _), embedding in zip(new_ids, new_embeddings):
+                vectors[idx] = embedding
+        
+        return {
+            "vectors": vectors,
+            "cached_count": cached_count
+        }
+
+    async def get_embeddings_by_ids(self, ids: List[str]) -> Dict:
+        """Retrieve cached embeddings by IDs from ChromaDB"""
+        try:
+            cached_results = self.collection.get(
+                ids=ids, 
+                include=["embeddings"]
+            )
+            
+            embeddings = []
+            found_count = 0
+            
+            # Create a map of cached embeddings
+            cached_map = {id: emb for id, emb in zip(cached_results['ids'], cached_results['embeddings']) if emb}
+            
+            # Return embeddings in the same order as requested IDs
+            for doc_id in ids:
+                if doc_id in cached_map:
+                    embeddings.append(cached_map[doc_id])
+                    found_count += 1
+                else:
+                    embeddings.append([])  # Empty list for missing embeddings
+            
+            return {
+                "embeddings": embeddings,
+                "found_count": found_count
+            }
+        except Exception as e:
+            logger.error(f"Error retrieving embeddings by IDs: {e}")
+            return {
+                "embeddings": [[] for _ in ids],
+                "found_count": 0
+            }
 
     def get_embeddings(self, articles: List[arxiv.Result]) -> Dict[str, List[float]]:
         """

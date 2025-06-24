@@ -23,15 +23,17 @@ services:
       - niche-explorer-network
     depends_on:
       - genai
+      - topic-discovery
       - db
     restart: unless-stopped
     environment:
       - GENAI_BASE_URL=http://genai:8000
+      - TOPIC_BASE_URL=http://topic-discovery:8100
 
   # GenAI service (FastAPI + Gemini)
   genai:
     build:
-      context: ./genai
+      context: ./services/genai
       dockerfile: Dockerfile
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY?err}
@@ -54,6 +56,19 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - niche-explorer-network
+    restart: unless-stopped
+
+  # Topic Discovery microservice (BERTopic)
+  topic-discovery:
+    build:
+      context: ./services/topic_discovery
+      dockerfile: Dockerfile
+    depends_on:
+      - genai
+    ports:
+      - "8003:8100"
     networks:
       - niche-explorer-network
     restart: unless-stopped

@@ -10,17 +10,22 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 @Service
 public class TrendsClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
+    @Value("${topic.base-url}")
+    private String topicBaseUrl;
+    
     @Value("${genai.base-url}")
     private String genaiBaseUrl;
 
     public TrendsResponse discoverTopics(String query, String feedUrl, int maxArticles, int minFrequency) {
-        String url = genaiBaseUrl + "/topic-discovery";
+        String url = topicBaseUrl + "/topic-discovery";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -33,6 +38,64 @@ public class TrendsClient {
             return response.getBody();
         } catch (Exception e) {
             throw new RuntimeException("Failed to discover topics from GenAI service", e);
+        }
+    }
+
+    public TrendsResponse discoverTopicsProperFlow(String query, String feedUrl, int maxArticles, int minFrequency) {
+        try {
+            // Step 1: Fetch papers by arXiv category using GenAI service arXiv router
+            String arxivUrl = genaiBaseUrl + "/arxiv/search";
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            // Create request for arXiv search
+            Map<String, Object> arxivRequest = new HashMap<>();
+            arxivRequest.put("query", feedUrl); // Use category (cs.CV) as query
+            arxivRequest.put("max_results", maxArticles);
+            
+            HttpEntity<Map<String, Object>> arxivEntity = new HttpEntity<>(arxivRequest, headers);
+            ResponseEntity<Map> arxivResponse = restTemplate.postForEntity(arxivUrl, arxivEntity, Map.class);
+            
+            List<Map<String, Object>> articles = (List<Map<String, Object>>) arxivResponse.getBody().get("articles");
+            List<String> articleIds = new ArrayList<>();
+            
+            // Extract article IDs
+            for (Map<String, Object> article : articles) {
+                articleIds.add((String) article.get("id"));
+            }
+            
+            // Step 2: Generate and cache embeddings using GenAI batch endpoint
+            String embedUrl = genaiBaseUrl + "/embed-batch";
+            Map<String, Object> embedRequest = new HashMap<>();
+            
+            List<String> texts = new ArrayList<>();
+            for (Map<String, Object> article : articles) {
+                texts.add(article.get("title") + ". " + article.get("abstract"));
+            }
+            
+            embedRequest.put("texts", texts);
+            embedRequest.put("ids", articleIds);
+            
+            HttpEntity<Map<String, Object>> embedEntity = new HttpEntity<>(embedRequest, headers);
+            restTemplate.postForEntity(embedUrl, embedEntity, Map.class); // Just cache, don't need response
+            
+            // Step 3: Discover topics from cached embeddings
+            String topicUrl = topicBaseUrl + "/discover-topics-from-embeddings";
+            Map<String, Object> topicRequest = new HashMap<>();
+            topicRequest.put("query", query);
+            topicRequest.put("article_keys", articleIds);
+            topicRequest.put("articles", articles);
+            topicRequest.put("min_cluster_size", minFrequency);
+            
+            HttpEntity<Map<String, Object>> topicEntity = new HttpEntity<>(topicRequest, headers);
+            ResponseEntity<TrendsResponse> topicResponse = restTemplate.postForEntity(topicUrl, topicEntity, TrendsResponse.class);
+            
+            return topicResponse.getBody();
+            
+        } catch (Exception e) {
+            // Fallback to old method if proper flow fails
+            System.err.println("Proper flow failed, falling back to old method: " + e.getMessage());
+            return discoverTopics(query, feedUrl, maxArticles, minFrequency);
         }
     }
 

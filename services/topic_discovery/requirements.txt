@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+hdbscan
+umap-learn
+scikit-learn
+numpy
+httpx
+arxiv 

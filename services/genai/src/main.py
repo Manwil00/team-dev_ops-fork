@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .routers import classification, embedding, topic_discovery, arxiv
+from .routers import classification, embedding, arxiv
 
 # Initialize FastAPI app
 app = FastAPI(title="GenAI API", version="1.0.0")
@@ -7,7 +7,6 @@ app = FastAPI(title="GenAI API", version="1.0.0")
 # Include routers
 app.include_router(classification.router)
 app.include_router(embedding.router)
-app.include_router(topic_discovery.router)
 app.include_router(arxiv.router)
 
 @app.get("/")

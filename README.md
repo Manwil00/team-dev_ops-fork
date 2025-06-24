@@ -12,18 +12,29 @@ NicheExplorer is a micro-services platform that monitors research articles from 
 │  (port 80)   │        │  API Server  │        │  Service    │
 └──────────────┘        │ (port 8080)  │        │ (port 8000) │
                         └──────┬──────┘        └────┬──────┘
-                               │ JDBC                  │ ArXiv API
-                               ▼                      │ Google AI
-                        ┌──────────────┐             │
-                        │ PostgreSQL + │◀────────────┘
-                        │  pgvector    │
-                        └──────────────┘
+                               │ JDBC            │   │ ArXiv API
+                               ▼                 │   │ Google AI
+                        ┌──────────────┐        │   │
+                        │ PostgreSQL + │        │   │
+                        │  pgvector    │        │   │
+                        └──────────────┘        │   │
+                               ▲                │   │
+                               │ ChromaDB       │   │
+                               │ Cache          │   │
+                               └────────────────┘   │
+                                                    │
+                               ┌─────────────┐     │
+                               │ Topic       │ ◀───┘
+                               │ Discovery   │
+                               │ (port 8100) │
+                               └─────────────┘
 ```
 
 Component roles:
 * **Frontend** – React + Vite SPA (client container)
 * **API Server** – Spring Boot service that orchestrates the pipeline and persists data
-* **GenAI Service** – FastAPI service using ArXiv API and Google Gemini for AI-powered analysis
+* **GenAI Service** – FastAPI service using ArXiv API and Google Gemini for embeddings with ChromaDB caching
+* **Topic Discovery** – Lightweight FastAPI service for HDBSCAN clustering and topic labeling
 * **Database** – PostgreSQL 15 with `pgvector` extension for semantic search
 
 ---
@@ -31,12 +42,13 @@ Component roles:
 ## Processing Pipeline
 
 1. **Query submission** – User enters a question like "current trends in computer vision" or builds advanced queries
-2. **Query processing** – System converts natural language to ArXiv API queries or uses advanced search syntax
-3. **Article harvesting** – GenAI service fetches recent papers via ArXiv API (up to *N* entries, default 50)
-4. **AI-powered analysis** – Google Gemini API processes articles for semantic understanding
-5. **Topic discovery** – Articles are grouped into meaningful topics using keyword clustering
-6. **Storage** – Topics, articles and their embeddings are stored with full metadata
-7. **Presentation** – Frontend displays ranked topics with query details and expandable articles
+2. **Query classification** – GenAI service determines appropriate ArXiv category (e.g., cs.CV for computer vision)
+3. **Article harvesting** – GenAI service fetches recent papers by category via ArXiv API (up to *N* entries, default 50)
+4. **Embedding generation** – Google Gemini API generates semantic embeddings for each paper, cached in ChromaDB
+5. **Topic discovery** – Topic Discovery service uses HDBSCAN clustering on cached embeddings to find meaningful subtopics
+6. **Topic labeling** – Advanced NLP techniques extract meaningful titles and descriptions for each topic cluster
+7. **Storage** – Topics, articles and their embeddings are stored with full metadata
+8. **Presentation** – Frontend displays ranked topics with query details and expandable articles
 
 ---
 
@@ -60,18 +72,22 @@ Component roles:
 
 ## Topic Discovery Algorithm
 
-The system uses a hybrid approach implemented in `genai/src/services/langchain_trends_service.py`:
+The system uses an advanced microservices approach with proper separation of concerns:
 
-1. **Data Acquisition** – Fetch articles via ArXiv API using optimized queries
-2. **Keyword Analysis** – Extract meaningful terms from titles and abstracts
-3. **Smart Grouping** – Articles are clustered by semantic similarity and common keywords
-4. **Topic Generation** – Each cluster becomes a topic with:
-   * Title → "<keyword> Research"
-   * Description → "Recent research advances in <keyword>"
-   * Relevance score → `50 + min(article_count × 3, 50)` (range 50-100)
-5. **Ranking** – Topics sorted by relevance and article count; top 6 returned
+1. **Data Acquisition** – GenAI service fetches articles via ArXiv API using category-based queries
+2. **Embedding Generation** – Google Gemini API creates semantic embeddings, cached in ChromaDB for efficiency
+3. **Semantic Clustering** – Topic Discovery service uses HDBSCAN algorithm on cached embeddings for optimal cluster detection
+4. **Topic Labeling** – Multi-strategy NLP approach extracts meaningful titles:
+   * Title phrase extraction from paper titles
+   * Technical term detection from abstracts
+   * TF-IDF analysis on n-grams for keyword relevance
+5. **Topic Generation** – Each cluster becomes a topic with:
+   * Title → Meaningful research area (e.g., "Neural Networks", "Object Detection")
+   * Description → Context-aware description of the research focus
+   * Relevance score → Clustering confidence (0-100)
+6. **Ranking** – Topics sorted by relevance and article count
 
-**AI Enhancement**: Google Gemini API provides semantic embeddings for advanced clustering (when enabled).
+**AI Enhancement**: Google Gemini embeddings enable precise semantic understanding and clustering of research papers.
 
 ---
 
@@ -140,36 +156,60 @@ CREATE INDEX trend_embedding_idx ON trend USING ivfflat (embedding vector_cosine
 - **Query visualization**: See exactly what search was performed
 - **Real-time preview**: Watch as advanced queries are constructed
 
-### **API Endpoints**
-- `POST /extract-trends` - Main analysis endpoint
-- `GET /arxiv-categories` - Available ArXiv research categories
-- `POST /build-advanced-query` - Construct advanced search queries
-- `POST /classify` - Auto-classify queries for source determination
+### **Complete API Reference**
+
+#### **Java API Server (port 8080)**
+- `POST /analyze` - **Main analysis endpoint**: Orchestrates the entire pipeline from query to topics
+- `GET /analysis/history` - **Analysis history**: Retrieve past analyses with pagination and filtering
+- `DELETE /analysis/{id}` - **Delete analysis**: Remove analysis and all associated data
+
+#### **GenAI Service (port 8000)**
+- `POST /classify` - **Query classification**: Determines if query is research/community and suggests ArXiv category
+- `POST /arxiv/search` - **Paper fetching**: Retrieves research papers by ArXiv category or advanced query
+- `POST /embed` - **Single embedding**: Generates semantic embedding for one text using Google Gemini
+- `POST /embed-batch` - **Batch embeddings**: Efficiently generates embeddings for multiple papers with ChromaDB caching
+- `POST /embeddings-by-ids` - **Cached retrieval**: Retrieves stored embeddings by paper IDs for Topic Discovery service
+- `GET /arxiv/categories` - **Available categories**: Lists ArXiv research categories organized by field
+- `POST /arxiv/build-query` - **Advanced queries**: Constructs complex ArXiv search syntax from terms and categories
+
+#### **Topic Discovery Service (port 8100)**
+- `POST /discover-topics-from-embeddings` - **Main clustering endpoint**: Uses cached embeddings to discover semantic topics via HDBSCAN
+
+#### **Why Each Endpoint is Needed:**
+
+**Query Processing Flow:**
+1. `/classify` - Converts natural language to appropriate data source and category
+2. `/arxiv/search` - Fetches relevant research papers by category for focused analysis
+3. `/embed-batch` - Generates semantic understanding of papers using AI, cached for efficiency
+
+**Topic Discovery Flow:**
+4. `/embeddings-by-ids` - Retrieves cached embeddings without regenerating them
+5. `/discover-topics-from-embeddings` - Clusters papers into meaningful research subtopics
+6. `/analyze` - Orchestrates the entire pipeline and persists results
+
+**User Experience:**
+- `/analysis/history` - Allows users to revisit past analyses and build on previous research
+- `/arxiv/categories` & `/arxiv/build-query` - Enables advanced users to construct precise research queries
+
+This architecture ensures **separation of concerns**, **caching efficiency**, and **specialized optimization** for each step of the analysis pipeline.
 
 ### **Performance Optimizations**
-- **Ultra-lightweight containers**: ~5 minute build time (was 20+ minutes)
+- **Ultra-lightweight containers**: Fast builds using `uv` package manager
 - **Google AI integration**: No local model downloads required
-- **Efficient ArXiv API**: Direct access to latest research papers
-- **Smart caching**: Embeddings and results cached in PostgreSQL
+- **Efficient ArXiv API**: Direct access to latest research papers by category
+- **Smart caching**: Embeddings cached in ChromaDB with batch processing
+- **Microservices architecture**: Specialized services for optimal performance
 
 ---
 
 ## Architecture Benefits
 
 1. **Reliability**: ArXiv API much more stable than RSS feeds
-2. **Advanced Search**: Support for complex research queries
-3. **AI-Powered**: Google Gemini provides state-of-the-art language understanding
-4. **Scalable**: Lightweight containers, efficient resource usage
-5. **Extensible**: Easy to add new data sources and AI capabilities
+2. **Advanced Search**: Support for complex research queries with category filtering
+3. **AI-Powered**: Google Gemini provides state-of-the-art semantic embeddings
+4. **Scalable**: Microservices architecture with specialized responsibilities
+5. **Efficient**: ChromaDB caching reduces redundant API calls and speeds up clustering
+6. **Extensible**: Clean separation between embedding generation and topic discovery
 
 ---
 
-## Roadmap
-
-* ✅ **ArXiv API Integration** - Replace RSS with official ArXiv API
-* ✅ **Advanced Search Queries** - Support complex search syntax
-* ✅ **Google AI Integration** - Use Gemini for embeddings and analysis
-* 🔄 **Enhanced Semantic Clustering** - Implement DBSCAN-based topic discovery
-* 📋 **Real-time Monitoring** - Scheduled background analysis
-* 🚀 **Production Deployment** - Kubernetes with Helm charts in `helm/`
-* 📊 **Analytics Dashboard** - Research trend visualization and insights 

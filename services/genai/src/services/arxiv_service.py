@@ -195,6 +195,31 @@ class ArXivService:
                 "physics.comp-ph - Computational Physics"
             ]
         }
+    
+    async def search_papers(self, query: str, max_results: int = 50) -> List[Dict[str, Any]]:
+        """
+        Search for papers and return them in a standardized format.
+        This method is used by the REST API endpoints.
+        """
+        try:
+            articles = self.fetch_articles(query, max_results)
+            
+            # Convert to standardized format
+            result = []
+            for article in articles:
+                result.append({
+                    "id": article.get_short_id(),
+                    "title": article.title,
+                    "link": article.entry_id,
+                    "abstract": article.summary,
+                    "authors": [author.name for author in article.authors]
+                })
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in search_papers: {e}")
+            return []
 
 # Create service instance
 arxiv_service = ArXivService() 

@@ -2,7 +2,7 @@ import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { BarChart3, ChevronDown, ChevronUp, Settings } from "lucide-react";
+import { BarChart3, ChevronDown, ChevronUp, Settings, Loader2 } from "lucide-react";
 
 interface QueryFormProps {
   query: string;
@@ -18,7 +18,8 @@ const QueryForm: React.FC<QueryFormProps> = ({
   onQueryChange, 
   onAnalyze, 
   onShowSettings,
-  showSettings = false
+  showSettings = false,
+  isLoading = false
 }) => {
   return (
     <div className="space-y-4">
@@ -30,9 +31,10 @@ const QueryForm: React.FC<QueryFormProps> = ({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           className="w-full transition-all duration-200"
+          disabled={isLoading}
         />
         <p className="text-sm text-muted-foreground">
-          AI will automatically discover semantic topic clusters using LangChain vector embeddings
+          AI will automatically discover semantic topic clusters using vector embeddings
         </p>
       </div>
 
@@ -42,6 +44,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
             variant="outline"
             onClick={onShowSettings}
             className="border-black/10 transition-all duration-300 hover:border-primary/50"
+            disabled={isLoading}
           >
             <Settings className="settings-icon h-4 w-4 mr-2" />
             Settings {showSettings ? (
@@ -66,13 +69,17 @@ const QueryForm: React.FC<QueryFormProps> = ({
           <div className="relative">
             <Button 
               onClick={onAnalyze} 
-              disabled={!query.trim()}
-              className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:bg-primary/90 transition-all duration-300"
+              disabled={!query.trim() || isLoading}
+              className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:bg-primary/90 transition-all duration-300 disabled:opacity-50"
               variant="default"
             >
-              <BarChart3 className="h-4 w-4" />
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <BarChart3 className="h-4 w-4" />
+              )}
               <span className="analyze-text relative">
-                Analyze Trends
+                {isLoading ? "Discovering Topics..." : "Analyze Trends"}
                 <span className="analyze-underline"></span>
               </span>
             </Button>

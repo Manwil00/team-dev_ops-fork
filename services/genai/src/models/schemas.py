@@ -18,6 +18,14 @@ class EmbedRequest(BaseModel):
 class EmbedResponse(BaseModel):
     vector: List[float]
 
+class BatchEmbedRequest(BaseModel):
+    texts: List[str]
+    ids: List[str]  # Document IDs for caching
+
+class BatchEmbedResponse(BaseModel):
+    vectors: List[List[float]]
+    cached_count: int  # How many were loaded from cache
+
 # Removed similarity models - similarity search not used by frontend
 
 # Trends models

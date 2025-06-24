@@ -64,8 +64,11 @@ public class AnalysisService {
             feedUrl = "https://www.reddit.com/r/" + feedId + ".rss";
         }
 
-        // Use Python NLP service for advanced trend extraction
-        TrendsClient.TrendsResponse trendsResponse = trendsClient.discoverTopics(
+        // Implement proper REST architecture flow:
+        // 1. Fetch papers by category from arXiv
+        // 2. Generate and cache embeddings in ChromaDB
+        // 3. Discover topics from cached embeddings
+        TrendsClient.TrendsResponse trendsResponse = trendsClient.discoverTopicsProperFlow(
             request.getQuery(),
             feedUrl, 
             request.getMaxArticles(), 
