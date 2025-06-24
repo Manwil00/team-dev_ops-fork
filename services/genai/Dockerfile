@@ -12,7 +12,7 @@ WORKDIR /app
 RUN pip install uv
 
 # Copy only the requirements file to leverage Docker's layer caching
-COPY config/requirements.txt .
+COPY requirements.txt ./
 
 # Install dependencies using the much faster `uv`
 # This replaces the slower `pip install`

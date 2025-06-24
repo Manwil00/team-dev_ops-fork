@@ -72,14 +72,15 @@ public class AnalysisService {
         // 3. Discover topics from cached embeddings
         TopicDiscoveryClient.TrendsResponse trendsResponse = topicClient.discoverTopic(
             request.getQuery(),
-            feedUrl, 
-            request.getMaxArticles(), 
-            3  // min frequency
+            feedUrl,
+            request.getMaxArticles(),
+            3,
+            type  // pass "Research" or "Community"
         );
         
         // Convert Python trends to our DTOs - use all trends found by LangChain clustering
         System.out.println("GenAI response has " + (trendsResponse.getTrends() != null ? trendsResponse.getTrends().size() : "null") + " trends");
-        List<TopicDto> trends = trendsResponse.getTrends().stream()
+        List<TopicDto> topics = trendsResponse.getTrends().stream()
             .map(topic -> {
                 // Convert Python articles to ArticleDto
                 List<ArticleDto> articles = topic.getArticles().stream()
@@ -111,11 +112,11 @@ public class AnalysisService {
                 request.getQuery(),
                 timestamp,
                 type,
-                trends,
+                topics,
                 feedUrl);
 
         // Save complete analysis with all trends
-        saveAnalysis(analysisId, request.getQuery(), type, feedUrl, trends, timestamp, 
+        saveAnalysis(analysisId, request.getQuery(), type, feedUrl, topics, timestamp, 
                     trendsResponse.getTotal_articles_processed());
         return response;
     }
@@ -126,7 +127,7 @@ public class AnalysisService {
      * Save complete analysis with all trends and articles with proper relationships
      */
     private void saveAnalysis(String analysisId, String query, String type, String feedUrl, 
-                             List<TopicDto> trends, Instant timestamp, int totalArticlesProcessed) {
+                             List<TopicDto> topics, Instant timestamp, int totalArticlesProcessed) {
         
         // 1. Insert analysis record
         String analysisSql = """
@@ -142,15 +143,15 @@ public class AnalysisService {
             totalArticlesProcessed,
             java.sql.Timestamp.from(timestamp));
 
-        // 2. Insert trends linked to this analysis
-        String trendSql = """
+        // 2. Insert topics linked to this analysis
+        String topicSql = """
             INSERT INTO topic(id, query, type, feed_url, title, description, article_count, relevance, created_at, analysis_id)
             VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING
             """;
         
-        for (TopicDto dto : trends) {
+        for (TopicDto dto : topics) {
             // Skip embedding generation - embeddings are handled by the topic discovery service's vector database
-            jdbc.update(trendSql,
+            jdbc.update(topicSql,
                 UUID.fromString(dto.getId()),
                 query,
                 type,
@@ -162,16 +163,16 @@ public class AnalysisService {
                 java.sql.Timestamp.from(timestamp),
                 UUID.fromString(analysisId));
             
-            // 4. Save individual articles for this trend
-            System.out.println("Saving articles for trend: " + dto.getTitle() + " with " + dto.getArticles().size() + " articles");
-            saveArticlesForTrend(dto.getId(), analysisId, dto.getArticles(), timestamp);
+            // 4. Save individual articles for this topic
+            System.out.println("Saving articles for topic: " + dto.getTitle() + " with " + dto.getArticles().size() + " articles");
+            saveArticlesForTopic(dto.getId(), analysisId, dto.getArticles(), timestamp);
         }
     }
     
     /**
-     * Save individual articles for a trend with their embeddings
+     * Save individual articles for a topic with their embeddings
      */
-    private void saveArticlesForTrend(String trendId, String analysisId, List<ArticleDto> articles, Instant timestamp) {
+    private void saveArticlesForTopic(String topicId, String analysisId, List<ArticleDto> articles, Instant timestamp) {
         String articleSql = """
             INSERT INTO article(id, topic_id, analysis_id, title, link, snippet, content_hash, created_at)
             VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (topic_id, content_hash) DO NOTHING
@@ -194,7 +195,7 @@ public class AnalysisService {
                 // Insert article
                 jdbc.update(articleSql,
                     UUID.fromString(article.getId()),
-                    UUID.fromString(trendId),
+                    UUID.fromString(topicId),
                     UUID.fromString(analysisId),
                     article.getTitle(),
                     article.getLink(),
@@ -211,7 +212,7 @@ public class AnalysisService {
     }
 
     /**
-     * Get complete analysis history with all trends
+     * Get complete analysis history with all topics
      */
     public List<AnalysisResponse> getAnalysisHistory(String queryFilter, int limit) {
         String sql;
@@ -240,15 +241,15 @@ public class AnalysisService {
             (rs, rowNum) -> {
                 String analysisId = rs.getString("id");
                 
-                // Get trends for this analysis
-                List<TopicDto> trends = getTrendsForAnalysis(analysisId);
+                // Get topics for this analysis
+                List<TopicDto> topics = getTopicsForAnalysis(analysisId);
                 
                 return new AnalysisResponse(
                     analysisId,
                     rs.getString("query"),
                     rs.getTimestamp("created_at").toInstant(),
                     rs.getString("type"),
-                    trends,
+                    topics,
                     rs.getString("feed_url")
                 );
             },
@@ -258,9 +259,9 @@ public class AnalysisService {
     }
     
     /**
-     * Get trends for a specific analysis with their articles
+     * Get topics for a specific analysis with their articles
      */
-    private List<TopicDto> getTrendsForAnalysis(String analysisId) {
+    private List<TopicDto> getTopicsForAnalysis(String analysisId) {
         String sql = """
             SELECT id, title, description, article_count, relevance
             FROM topic 
@@ -270,11 +271,11 @@ public class AnalysisService {
         
         return jdbc.query(sql,
             (rs, rowNum) -> {
-                String trendId = rs.getString("id");
-                List<ArticleDto> articles = getArticlesForTrend(trendId);
+                String topicId = rs.getString("id");
+                List<ArticleDto> articles = getArticlesForTopic(topicId);
                 
                 return new TopicDto(
-                    trendId,
+                    topicId,
                     rs.getString("title"),
                     rs.getString("description"),
                     articles.size(),  // Use actual article count instead of stored value
@@ -286,9 +287,9 @@ public class AnalysisService {
     }
     
     /**
-     * Get articles for a specific trend
+     * Get articles for a specific topic
      */
-    private List<ArticleDto> getArticlesForTrend(String trendId) {
+    private List<ArticleDto> getArticlesForTopic(String topicId) {
         String sql = """
             SELECT id, title, link, snippet
             FROM article 
@@ -303,13 +304,13 @@ public class AnalysisService {
                 rs.getString("link"),
                 rs.getString("snippet")
             ),
-            UUID.fromString(trendId));
+            UUID.fromString(topicId));
     }
 
     /**
-     * Get vector embedding for a trend
+     * Get vector embedding for a topic
      */
-    public Map<String, Object> getTrendEmbedding(String trendId) {
+    public Map<String, Object> getTopicEmbedding(String topicId) {
         String sql = """
             SELECT title, description, embedding
             FROM topic 
@@ -320,7 +321,7 @@ public class AnalysisService {
             rs -> {
                 if (rs.next()) {
                     Map<String, Object> result = new HashMap<>();
-                    result.put("id", trendId);
+                    result.put("id", topicId);
                     result.put("title", rs.getString("title"));
                     result.put("description", rs.getString("description"));
                     
@@ -335,7 +336,7 @@ public class AnalysisService {
                 }
                 return null;
             },
-            UUID.fromString(trendId));
+            UUID.fromString(topicId));
     }
     
     /**
@@ -372,9 +373,9 @@ public class AnalysisService {
     }
     
     /**
-     * Find similar trends based on vector similarity
+     * Find similar topics based on vector similarity
      */
-    public List<Map<String, Object>> findSimilarTrends(String trendId, int limit) {
+    public List<Map<String, Object>> findSimilarTopics(String topicId, int limit) {
         String sql = """
             SELECT t1.id, t1.title, t1.description, t1.relevance,
                    (t1.embedding <=> t2.embedding) as similarity_distance
@@ -394,20 +395,20 @@ public class AnalysisService {
                 result.put("similarity_score", 1.0 - rs.getDouble("similarity_distance")); // Convert distance to similarity
                 return result;
             },
-            UUID.fromString(trendId), UUID.fromString(trendId), limit);
+            UUID.fromString(topicId), UUID.fromString(topicId), limit);
     }
 
     /**
-     * Delete an analysis and all its associated trends and articles
+     * Delete an analysis and all its associated topics and articles
      */
     public void deleteAnalysis(String analysisId) {
         // Delete articles first (due to foreign key constraints)
         String deleteArticlesSql = "DELETE FROM article WHERE analysis_id = ?";
         jdbc.update(deleteArticlesSql, UUID.fromString(analysisId));
         
-        // Delete trends (this will also cascade to articles if not already deleted)
-        String deleteTrendsSql = "DELETE FROM topic WHERE analysis_id = ?";
-        jdbc.update(deleteTrendsSql, UUID.fromString(analysisId));
+        // Delete topics (this will also cascade to articles if not already deleted)
+        String deleteTopicsSql = "DELETE FROM topic WHERE analysis_id = ?";
+        jdbc.update(deleteTopicsSql, UUID.fromString(analysisId));
         
         // Delete the analysis
         String deleteAnalysisSql = "DELETE FROM analysis WHERE id = ?";

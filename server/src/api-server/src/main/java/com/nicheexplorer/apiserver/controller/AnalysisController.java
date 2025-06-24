@@ -50,13 +50,13 @@ public class AnalysisController {
         }
     }
 
-    @PostMapping("/trend/{trendId}/embedding")
-    public ResponseEntity<Map<String, Object>> getTrendEmbedding(@PathVariable String trendId) {
+    @PostMapping("/topic/{topicId}/embedding")
+    public ResponseEntity<Map<String, Object>> getTopicEmbedding(@PathVariable String topicId) {
         try {
-            Map<String, Object> embedding = analysisService.getTrendEmbedding(trendId);
+            Map<String, Object> embedding = analysisService.getTopicEmbedding(topicId);
             return ResponseEntity.ok(embedding);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get trend embedding", e);
+            throw new RuntimeException("Failed to get topic embedding", e);
         }
     }
 

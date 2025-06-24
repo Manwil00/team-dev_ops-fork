@@ -24,6 +24,7 @@ services:
     depends_on:
       - genai
       - topic-discovery
+      - article-fetcher
       - db
     restart: unless-stopped
     environment:
@@ -69,6 +70,17 @@ services:
       - genai
     ports:
       - "8003:8100"
+    networks:
+      - niche-explorer-network
+    restart: unless-stopped
+
+  # Article Fetcher microservice (planned)
+  article-fetcher:
+    build:
+      context: ./services/article_fetcher
+      dockerfile: Dockerfile
+    ports:
+      - "8200:8200"
     networks:
       - niche-explorer-network
     restart: unless-stopped

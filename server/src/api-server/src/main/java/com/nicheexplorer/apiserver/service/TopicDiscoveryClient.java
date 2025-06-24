@@ -31,21 +31,23 @@ public class TopicDiscoveryClient {
     @Value("${genai.base-url}")
     private String genaiBaseUrl;
 
+    @Value("${fetcher.base-url}")
+    private String fetcherBaseUrl;
+
     /**
      * Main entry point used by AnalysisService.
      */
-    public TrendsResponse discoverTopic(String query, String feedUrl, int maxArticles, int minFrequency) {
+    public TrendsResponse discoverTopic(String query, String feedUrl, int maxArticles, int minFrequency, String sourceType) {
         try {
-            // 1️⃣  Fetch papers from arXiv via GenAI service
-            String arxivUrl = genaiBaseUrl + "/arxiv/search";
+            // Step 1: Fetch articles via article-fetcher service
             HttpHeaders headers = jsonHeaders();
-            Map<String, Object> arxivRequest = new HashMap<>();
-            arxivRequest.put("query", feedUrl);
-            arxivRequest.put("max_results", maxArticles);
-            ResponseEntity<Map> arxivResponse = restTemplate.postForEntity(arxivUrl, new HttpEntity<>(arxivRequest, headers), Map.class);
-            List<Map<String, Object>> articles = (List<Map<String, Object>>) arxivResponse.getBody().get("articles");
-
-            // collect IDs
+            String fetchUrl = fetcherBaseUrl + "/fetch";
+            Map<String, Object> fetchReq = new HashMap<>();
+            fetchReq.put("query", feedUrl);
+            fetchReq.put("max_results", maxArticles);
+            fetchReq.put("source_type", sourceType.toLowerCase());
+            ResponseEntity<Map> fetchResp = restTemplate.postForEntity(fetchUrl, new HttpEntity<>(fetchReq, headers), Map.class);
+            List<Map<String, Object>> articles = (List<Map<String, Object>>) fetchResp.getBody().get("articles");
             List<String> articleIds = new ArrayList<>();
             for (Map<String, Object> article : articles) {
                 articleIds.add((String) article.get("id"));

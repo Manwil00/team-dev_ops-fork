@@ -3,7 +3,7 @@ from typing import List, Dict
 import chromadb
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import arxiv
-from ..config.settings import settings
+from ..settings import settings
 
 logger = logging.getLogger(__name__)
 

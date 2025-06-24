@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import google.generativeai as genai
-from ..config.settings import settings
+from ..settings import settings
 
 logger = logging.getLogger(__name__)
 
