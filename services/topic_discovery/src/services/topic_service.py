@@ -16,79 +16,8 @@ class TopicDiscoveryService:
     def __init__(self, genai_base_url: str = "http://genai:8000"):
         self.genai_base_url = genai_base_url
         
-    async def discover_topics(
-        self, 
-        query: str, 
-        max_results: int = 50,
-        min_cluster_size: int = 3,
-        n_components: int = 15
-    ) -> Dict[str, Any]:
-        """
-        Original method: Discover topics using external embeddings + HDBSCAN clustering
-        """
-        # Fetch articles from arXiv
-        print(f"Searching arXiv for: {query}")
-        search = arxiv.Search(
-            query=query,
-            max_results=max_results,
-            sort_by=arxiv.SortCriterion.Relevance
-        )
-        
-        articles = []
-        texts = []
-        ids = []
-        
-        for result in search.results():
-            article = {
-                "id": result.get_short_id(),
-                "title": result.title,
-                "link": result.entry_id,
-                "abstract": result.summary,
-                "authors": [author.name for author in result.authors]
-            }
-            articles.append(article)
-            texts.append(f"{result.title}. {result.summary}")
-            ids.append(result.get_short_id())
-        
-        if len(articles) == 0:
-            return {
-                "topics": [],
-                "total_articles": 0
-            }
-        
-        print(f"Found {len(articles)} articles, getting embeddings...")
-        
-        # Get embeddings using batch endpoint with caching
-        embeddings = await self._get_embeddings_batch(texts, ids)
-        
-        return self._cluster_and_label(articles, embeddings, min_cluster_size, n_components)
-
-    async def discover_topics_with_keys(
-        self,
-        query: str,
-        article_keys: List[str],
-        articles: List[Dict[str, Any]],
-        min_cluster_size: int = 3,
-        n_components: int = 15
-    ) -> Dict[str, Any]:
-        """
-        API-first method: Use batch endpoint with pre-fetched article keys
-        """
-        if len(articles) == 0:
-            return {
-                "topics": [],
-                "total_articles": 0
-            }
-        
-        print(f"Getting embeddings for {len(article_keys)} articles via batch API...")
-        
-        # Prepare texts and IDs for batch embedding
-        texts = [f"{article['title']}. {article.get('abstract', '')}" for article in articles]
-        
-        # Use batch endpoint for efficient embedding with caching
-        embeddings = await self._get_embeddings_batch(texts, article_keys)
-        
-        return self._cluster_and_label(articles, embeddings, min_cluster_size, n_components)
+    # Legacy methods discover_topics and discover_topics_with_keys have been removed
+    # to keep the service focused on clustering cached embeddings only.
 
     def _cluster_and_label(
         self,
@@ -409,54 +338,34 @@ class TopicDiscoveryService:
             "description": f"Collection of {count} related research papers"
         }
 
-    async def discover_topics_from_cached_embeddings(
+    async def discover_topic(
         self,
         query: str,
         article_keys: List[str],
         articles: List[Dict[str, Any]],
         min_cluster_size: int = 3,
-        n_components: int = 15
+        n_components: int = 15,
     ) -> Dict[str, Any]:
-        """
-        Proper REST architecture: Use cached embeddings from GenAI service
-        This method assumes embeddings are already cached in ChromaDB by the GenAI service
-        """
-        if len(articles) == 0:
-            return {
-                "topics": [],
-                "total_articles": 0
-            }
-        
-        print(f"Retrieving {len(article_keys)} cached embeddings from GenAI service...")
-        
-        # Get cached embeddings from GenAI service
+        """Cluster cached embeddings (already stored by genai service) into topics."""
+
+        if not articles:
+            return {"topics": [], "total_articles": 0}
+
+        # Retrieve cached vectors for provided article IDs
         embeddings = await self._get_cached_embeddings_from_genai(article_keys)
-        
-        if len(embeddings) == 0 or all(len(emb) == 0 for emb in embeddings):
-            print("No cached embeddings found, cannot proceed with topic discovery")
-            return {
-                "topics": [],
-                "total_articles": 0
-            }
-        
-        # Filter out articles with empty embeddings
-        valid_articles = []
-        valid_embeddings = []
-        for article, embedding in zip(articles, embeddings):
-            if len(embedding) > 0:
-                valid_articles.append(article)
-                valid_embeddings.append(embedding)
-        
-        if len(valid_articles) == 0:
-            return {
-                "topics": [],
-                "total_articles": 0
-            }
-        
-        print(f"Using {len(valid_embeddings)} cached embeddings for clustering")
-        embeddings_array = np.array(valid_embeddings)
-        
-        return self._cluster_and_label(valid_articles, embeddings_array, min_cluster_size, n_components)
+
+        # Filter out articles without embeddings
+        paired = [(a, e) for a, e in zip(articles, embeddings) if e]
+        if not paired:
+            return {"topics": [], "total_articles": 0}
+
+        valid_articles, valid_embeddings = zip(*paired)
+        return self._cluster_and_label(
+            list(valid_articles),
+            np.array(valid_embeddings),
+            min_cluster_size,
+            n_components,
+        )
 
     async def _get_cached_embeddings_from_genai(self, article_keys: List[str]) -> List[List[float]]:
         """Get cached embeddings from GenAI service by article IDs"""

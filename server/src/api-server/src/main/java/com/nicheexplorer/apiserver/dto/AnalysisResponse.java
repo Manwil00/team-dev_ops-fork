@@ -2,19 +2,20 @@ package com.nicheexplorer.apiserver.dto;
 
 import java.time.Instant;
 import java.util.List;
+import com.nicheexplorer.apiserver.dto.TopicDto;
 
 public class AnalysisResponse {
     private String id;
     private String query;
     private Instant timestamp;
     private String type;
-    private List<TrendDto> trends;
+    private List<TopicDto> trends;
     private String feedUrl;
 
     public AnalysisResponse() {
     }
 
-    public AnalysisResponse(String id, String query, Instant timestamp, String type, List<TrendDto> trends, String feedUrl) {
+    public AnalysisResponse(String id, String query, Instant timestamp, String type, List<TopicDto> trends, String feedUrl) {
         this.id = id;
         this.query = query;
         this.timestamp = timestamp;
@@ -55,11 +56,11 @@ public class AnalysisResponse {
         this.type = type;
     }
 
-    public List<TrendDto> getTrends() {
+    public List<TopicDto> getTrends() {
         return trends;
     }
 
-    public void setTrends(List<TrendDto> trends) {
+    public void setTrends(List<TopicDto> trends) {
         this.trends = trends;
     }
 

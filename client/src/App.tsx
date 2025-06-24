@@ -12,7 +12,7 @@ interface Article {
   snippet: string;
 }
 
-interface Trend {
+interface Topic {
   id: string;
   title: string;
   description: string;
@@ -26,7 +26,7 @@ interface Analysis {
   query: string;
   timestamp: string;
   type: 'Research' | 'Community';
-  trends: Trend[];
+  trends: Topic[];
   feedUrl?: string;
 }
 

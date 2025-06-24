@@ -5,7 +5,7 @@ export interface ArticleDto {
   snippet: string;
 }
 
-export interface TrendDto {
+export interface TopicDto {
   id: string;
   title: string;
   description: string;
@@ -20,7 +20,7 @@ export interface AnalysisResponse {
   timestamp: string;
   type: string;
   feedUrl?: string;
-  trends: TrendDto[];
+  trends: TopicDto[];
 }
 
 export interface AnalyzeRequest {

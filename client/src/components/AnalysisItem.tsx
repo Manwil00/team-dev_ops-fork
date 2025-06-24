@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
-import TrendResult from './TrendResult';
+import TopicResult from './TopicResult';
 
 interface Article {
   id: string;
@@ -11,7 +11,7 @@ interface Article {
   snippet: string;
 }
 
-interface Trend {
+interface Topic {
   id: string;
   title: string;
   description: string;
@@ -25,7 +25,7 @@ interface AnalysisItemProps {
   query: string;
   timestamp: string;
   type: 'Research' | 'Community';
-  trends: Trend[];
+  trends: Topic[];
   feedUrl?: string;  // Add feedUrl to show the actual query used
   onDelete: (id: string) => void;
   darkMode?: boolean;
@@ -55,7 +55,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
     });
   };
 
-  const totalArticles = trends.reduce((sum, trend) => sum + trend.articleCount, 0);
+  const totalArticles = trends.reduce((sum, topic) => sum + topic.articleCount, 0);
 
   // Parse the query type and details
   const getQueryInfo = () => {
@@ -263,18 +263,13 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
       )}
 
       {showTrends && (
-        <div className="space-y-3 mt-4">
-          {trends.map((trend, index) => (
-            <TrendResult
-              key={trend.id}
-              title={trend.title}
-              description={trend.description}
-              articleCount={trend.articleCount}
-              relevance={trend.relevance}
-              articles={trend.articles}
-              darkMode={darkMode}
+        <div className="mt-4 space-y-4">
+          {trends.map((topic, index) => (
+            <TopicResult
+              key={topic.id}
+              {...topic}
               rank={index + 1}
-              trendId={trend.id}
+              darkMode={darkMode}
             />
           ))}
         </div>

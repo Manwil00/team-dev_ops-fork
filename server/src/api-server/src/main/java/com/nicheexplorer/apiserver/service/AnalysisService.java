@@ -2,12 +2,11 @@ package com.nicheexplorer.apiserver.service;
 
 import com.nicheexplorer.apiserver.dto.AnalyzeRequest;
 import com.nicheexplorer.apiserver.dto.AnalysisResponse;
-import com.nicheexplorer.apiserver.dto.TrendDto;
+import com.nicheexplorer.apiserver.dto.TopicDto;
 import com.nicheexplorer.apiserver.dto.ArticleDto;
 import org.springframework.stereotype.Service;
 import com.nicheexplorer.apiserver.service.SourceClassificationClient.ClassificationResponse;
 import org.springframework.jdbc.core.JdbcTemplate;
-import com.pgvector.PGvector;
 
 import java.time.Instant;
 import java.util.*;
@@ -16,6 +15,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.nio.charset.StandardCharsets;
 
+// New topic discovery client
+import com.nicheexplorer.apiserver.service.TopicDiscoveryClient;
+
 @Service
 public class AnalysisService {
 
@@ -23,16 +25,16 @@ public class AnalysisService {
 
     private final SourceClassificationClient classifier;
     private final JdbcTemplate jdbc;
-    private final TrendsClient trendsClient;
+    private final TopicDiscoveryClient topicClient;
     private final EmbeddingClient embedClient;
 
     public AnalysisService(SourceClassificationClient classifier,
                            JdbcTemplate jdbc,
-                           TrendsClient trendsClient,
+                           TopicDiscoveryClient topicClient,
                            EmbeddingClient embedClient) {
         this.classifier = classifier;
         this.jdbc = jdbc;
-        this.trendsClient = trendsClient;
+        this.topicClient = topicClient;
         this.embedClient = embedClient;
     }
 
@@ -68,7 +70,7 @@ public class AnalysisService {
         // 1. Fetch papers by category from arXiv
         // 2. Generate and cache embeddings in ChromaDB
         // 3. Discover topics from cached embeddings
-        TrendsClient.TrendsResponse trendsResponse = trendsClient.discoverTopicsProperFlow(
+        TopicDiscoveryClient.TrendsResponse trendsResponse = topicClient.discoverTopic(
             request.getQuery(),
             feedUrl, 
             request.getMaxArticles(), 
@@ -77,7 +79,7 @@ public class AnalysisService {
         
         // Convert Python trends to our DTOs - use all trends found by LangChain clustering
         System.out.println("GenAI response has " + (trendsResponse.getTrends() != null ? trendsResponse.getTrends().size() : "null") + " trends");
-        List<TrendDto> trends = trendsResponse.getTrends().stream()
+        List<TopicDto> trends = trendsResponse.getTrends().stream()
             .map(topic -> {
                 // Convert Python articles to ArticleDto
                 List<ArticleDto> articles = topic.getArticles().stream()
@@ -89,7 +91,7 @@ public class AnalysisService {
                     ))
                 .collect(Collectors.toList());
 
-                return new TrendDto(
+                return new TopicDto(
                     UUID.randomUUID().toString(),  // Generate new UUID instead of using Python ID
                     topic.getTitle(),
                     topic.getDescription(),
@@ -124,7 +126,7 @@ public class AnalysisService {
      * Save complete analysis with all trends and articles with proper relationships
      */
     private void saveAnalysis(String analysisId, String query, String type, String feedUrl, 
-                             List<TrendDto> trends, Instant timestamp, int totalArticlesProcessed) {
+                             List<TopicDto> trends, Instant timestamp, int totalArticlesProcessed) {
         
         // 1. Insert analysis record
         String analysisSql = """
@@ -142,11 +144,11 @@ public class AnalysisService {
 
         // 2. Insert trends linked to this analysis
         String trendSql = """
-            INSERT INTO trend(id, query, type, feed_url, title, description, article_count, relevance, created_at, analysis_id)
+            INSERT INTO topic(id, query, type, feed_url, title, description, article_count, relevance, created_at, analysis_id)
             VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT (id) DO NOTHING
             """;
         
-        for (TrendDto dto : trends) {
+        for (TopicDto dto : trends) {
             // Skip embedding generation - embeddings are handled by the topic discovery service's vector database
             jdbc.update(trendSql,
                 UUID.fromString(dto.getId()),
@@ -171,8 +173,8 @@ public class AnalysisService {
      */
     private void saveArticlesForTrend(String trendId, String analysisId, List<ArticleDto> articles, Instant timestamp) {
         String articleSql = """
-            INSERT INTO article(id, trend_id, analysis_id, title, link, snippet, content_hash, created_at)
-            VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (trend_id, content_hash) DO NOTHING
+            INSERT INTO article(id, topic_id, analysis_id, title, link, snippet, content_hash, created_at)
+            VALUES (?,?,?,?,?,?,?,?) ON CONFLICT (topic_id, content_hash) DO NOTHING
             """;
         
         for (ArticleDto article : articles) {
@@ -239,7 +241,7 @@ public class AnalysisService {
                 String analysisId = rs.getString("id");
                 
                 // Get trends for this analysis
-                List<TrendDto> trends = getTrendsForAnalysis(analysisId);
+                List<TopicDto> trends = getTrendsForAnalysis(analysisId);
                 
                 return new AnalysisResponse(
                     analysisId,
@@ -258,10 +260,10 @@ public class AnalysisService {
     /**
      * Get trends for a specific analysis with their articles
      */
-    private List<TrendDto> getTrendsForAnalysis(String analysisId) {
+    private List<TopicDto> getTrendsForAnalysis(String analysisId) {
         String sql = """
             SELECT id, title, description, article_count, relevance
-            FROM trend 
+            FROM topic 
             WHERE analysis_id = ?
             ORDER BY relevance DESC
             """;
@@ -271,7 +273,7 @@ public class AnalysisService {
                 String trendId = rs.getString("id");
                 List<ArticleDto> articles = getArticlesForTrend(trendId);
                 
-                return new TrendDto(
+                return new TopicDto(
                     trendId,
                     rs.getString("title"),
                     rs.getString("description"),
@@ -290,7 +292,7 @@ public class AnalysisService {
         String sql = """
             SELECT id, title, link, snippet
             FROM article 
-            WHERE trend_id = ?
+            WHERE topic_id = ?
             ORDER BY created_at
             """;
         
@@ -310,7 +312,7 @@ public class AnalysisService {
     public Map<String, Object> getTrendEmbedding(String trendId) {
         String sql = """
             SELECT title, description, embedding
-            FROM trend 
+            FROM topic 
             WHERE id = ?
             """;
         
@@ -376,7 +378,7 @@ public class AnalysisService {
         String sql = """
             SELECT t1.id, t1.title, t1.description, t1.relevance,
                    (t1.embedding <=> t2.embedding) as similarity_distance
-            FROM trend t1, trend t2
+            FROM topic t1, topic t2
             WHERE t2.id = ? AND t1.id != ?
             ORDER BY t1.embedding <=> t2.embedding
             LIMIT ?
@@ -404,7 +406,7 @@ public class AnalysisService {
         jdbc.update(deleteArticlesSql, UUID.fromString(analysisId));
         
         // Delete trends (this will also cascade to articles if not already deleted)
-        String deleteTrendsSql = "DELETE FROM trend WHERE analysis_id = ?";
+        String deleteTrendsSql = "DELETE FROM topic WHERE analysis_id = ?";
         jdbc.update(deleteTrendsSql, UUID.fromString(analysisId));
         
         // Delete the analysis
