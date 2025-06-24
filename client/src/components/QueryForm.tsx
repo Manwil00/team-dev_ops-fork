@@ -10,6 +10,7 @@ interface QueryFormProps {
   onAnalyze: () => void;
   onShowSettings: () => void;
   showSettings?: boolean;
+  isLoading?: boolean;
 }
 
 const QueryForm: React.FC<QueryFormProps> = ({ 

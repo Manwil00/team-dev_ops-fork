@@ -19,8 +19,8 @@ public class TrendsClient {
     @Value("${genai.base-url}")
     private String genaiBaseUrl;
 
-    public TrendsResponse extractTrends(String query, String feedUrl, int maxArticles, int minFrequency) {
-        String url = genaiBaseUrl + "/extract-trends";
+    public TrendsResponse discoverTopics(String query, String feedUrl, int maxArticles, int minFrequency) {
+        String url = genaiBaseUrl + "/topic-discovery";
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -32,7 +32,7 @@ public class TrendsClient {
             ResponseEntity<TrendsResponse> response = restTemplate.postForEntity(url, entity, TrendsResponse.class);
             return response.getBody();
         } catch (Exception e) {
-            throw new RuntimeException("Failed to extract trends from GenAI service", e);
+            throw new RuntimeException("Failed to discover topics from GenAI service", e);
         }
     }
 

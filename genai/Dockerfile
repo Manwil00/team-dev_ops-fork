@@ -1,34 +1,31 @@
-# Use Python 3.11 as base image
+# Use a modern, slim Python base image
 FROM python:3.11-slim
 
-# Install minimal system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set environment variables for faster builds
-ENV PIP_NO_CACHE_DIR=1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+# Set environment variables for a clean, non-interactive environment
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first for better caching
+# Install uv, the fast Python package installer
+RUN pip install uv
+
+# Copy only the requirements file to leverage Docker's layer caching
 COPY config/requirements.txt .
 
-# Install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+# Install dependencies using the much faster `uv`
+# This replaces the slower `pip install`
+RUN uv pip install --system --no-cache -r requirements.txt
 
-# Copy source code
-COPY src/ ./src/
+# Copy the application source code
+COPY src/ ./src
 
-# Set environment variables
+# Add the app directory to the Python path
 ENV PYTHONPATH=/app
 
+# Expose the port the app runs on
 EXPOSE 8000
 
-# Command to run the application
+# Run the application with Uvicorn
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

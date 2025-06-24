@@ -65,7 +65,7 @@ public class AnalysisService {
         }
 
         // Use Python NLP service for advanced trend extraction
-        TrendsClient.TrendsResponse trendsResponse = trendsClient.extractTrends(
+        TrendsClient.TrendsResponse trendsResponse = trendsClient.discoverTopics(
             request.getQuery(),
             feedUrl, 
             request.getMaxArticles(), 
@@ -144,10 +144,7 @@ public class AnalysisService {
             """;
         
         for (TrendDto dto : trends) {
-            // Embed title + description for richer semantic representation
-            String embeddingText = dto.getTitle() + ": " + dto.getDescription();
-            float[] vec = embedClient.embed(embeddingText);
-
+            // Skip embedding generation - embeddings are handled by the topic discovery service's vector database
             jdbc.update(trendSql,
                 UUID.fromString(dto.getId()),
                 query,
@@ -159,12 +156,6 @@ public class AnalysisService {
                 dto.getRelevance(),
                 java.sql.Timestamp.from(timestamp),
                 UUID.fromString(analysisId));
-
-            // 3. Update trend embedding separately (for performance)
-            if (vec.length > 0) {
-                PGvector pgVector = new PGvector(vec);
-                jdbc.update("UPDATE trend SET embedding = ? WHERE id = ?", pgVector, UUID.fromString(dto.getId()));
-            }
             
             // 4. Save individual articles for this trend
             System.out.println("Saving articles for trend: " + dto.getTitle() + " with " + dto.getArticles().size() + " articles");
@@ -206,14 +197,7 @@ public class AnalysisService {
                     contentHash,
                     java.sql.Timestamp.from(timestamp));
                 
-                // Generate and save article embedding
-                String articleContent = article.getTitle() + ": " + (article.getSnippet() != null ? article.getSnippet() : "");
-                float[] articleVec = embedClient.embed(articleContent);
-                
-                if (articleVec.length > 0) {
-                    PGvector pgVector = new PGvector(articleVec);
-                    jdbc.update("UPDATE article SET embedding = ? WHERE id = ?", pgVector, UUID.fromString(article.getId()));
-                }
+                // Skip embedding generation - embeddings are handled by the topic discovery service's vector database
             } catch (Exception e) {
                 // Log error but continue with other articles
                 System.err.println("Error saving article " + article.getId() + ": " + e.getMessage());

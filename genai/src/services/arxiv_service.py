@@ -24,7 +24,7 @@ class ArXivService:
     def __init__(self):
         self.client = arxiv.Client()
     
-    def fetch_articles(self, query_or_category: str, max_articles: int = 50) -> List[Dict[str, Any]]:
+    def fetch_articles(self, query_or_category: str, max_articles: int = 50) -> List[arxiv.Result]:
         """
         Fetch articles from ArXiv based on query or category.
         
@@ -36,7 +36,7 @@ class ArXivService:
             max_articles: Maximum number of articles to fetch
             
         Returns:
-            List of article dictionaries with standardized fields
+            List of ArXiv search result objects.
         """
         try:
             # Determine if this is a category, advanced query, or needs conversion
@@ -52,23 +52,10 @@ class ArXivService:
                 sort_order=arxiv.SortOrder.Descending
             )
             
-            articles = []
-            for result in self.client.results(search):
-                article = {
-                    'title': result.title,
-                    'link': result.entry_id,
-                    'summary': result.summary,
-                    'description': result.summary,  # Alias for compatibility
-                    'published': result.published.isoformat() if result.published else '',
-                    'author': ', '.join([author.name for author in result.authors]) if result.authors else '',
-                    'categories': [cat for cat in result.categories],
-                    'pdf_url': result.pdf_url,
-                    'doi': result.doi
-                }
-                articles.append(article)
+            results = list(self.client.results(search))
             
-            logger.info(f"Successfully fetched {len(articles)} articles from ArXiv")
-            return articles
+            logger.info(f"Successfully fetched {len(results)} articles from ArXiv")
+            return results
             
         except Exception as e:
             logger.error(f"Error fetching ArXiv articles: {e}")
