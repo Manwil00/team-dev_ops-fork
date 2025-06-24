@@ -40,6 +40,8 @@ services:
     networks:
       - niche-explorer-network
     restart: unless-stopped
+    env_file:
+      - .env
 
   # Postgres with pgvector extension
   db:

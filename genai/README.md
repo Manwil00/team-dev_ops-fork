@@ -25,7 +25,8 @@ src/
 │   └── embedding.py       # Vector embedding operations
 ├── services/               # Core ML services
 │   ├── langchain_trends_service.py  # Main trend analysis engine
-│   ├── google_client.py            # Google Gemini API integration
+│   ├── google_client.py            # Google Gemini API integration (No longer used, left as backup option.)
+|   ├── openweb_client.py            # Open WebUI API integration to the models hosted by the chair.
 │   └── embedding_service.py        # Vector embedding service
 ├── models/                 # Data models and schemas
 │   └── schemas.py         # Pydantic models for API
@@ -53,6 +54,7 @@ src/
 
 ## 4 · Configuration & environment
 * `GOOGLE_API_KEY` – optional; unlocks Gemini embeddings.  If missing the service silently switches to the local Sentence-Transformer model.
+* `CHAIR_API_KEY` - necessary to use the models hosted by the chair. Currently this is only utilized for the /classify endpoint.
 * Processing limits such as `MAX_ARTICLES_PER_REQUEST` and `MIN_TREND_FREQUENCY` are centralised in `config/settings.py` and can be tuned without code changes.
 
 ---
