@@ -5,19 +5,23 @@ import SettingsForm from './SettingsForm';
 import { AnalyzeRequest } from "../services/analysis";
 
 interface StartExploringFormProps {
-  onAnalyze: (req: AnalyzeRequest) => void;
+  onAnalyze: (req: AnalyzeRequest) => Promise<void>;
 }
 
 const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze }) => {
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
   const [autoDetect, setAutoDetect] = useState<boolean>(true);
   const [maxArticles, setMaxArticles] = useState<number>(50);
   const [source, setSource] = useState<"research" | "community">("research");
   const [feed, setFeed] = useState<string>("cs.CV");
 
-  const handleAnalyze = () => {
-    if (!query.trim()) return;
+  const handleAnalyze = async () => {
+    if (!query.trim() || isLoading) return;
+
+    setIsLoading(true);
+    const startTime = Date.now();
 
     const req: AnalyzeRequest = {
       query,
@@ -30,7 +34,17 @@ const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze }) =>
       req.feed = feed;
     }
 
-    onAnalyze(req);
+    try {
+      await onAnalyze(req);
+    } finally {
+      const duration = Date.now() - startTime;
+      const minDisplayTime = 500; // 0.5 seconds
+      if (duration < minDisplayTime) {
+        setTimeout(() => setIsLoading(false), minDisplayTime - duration);
+      } else {
+        setIsLoading(false);
+      }
+    }
   };
 
   const toggleSettings = () => {
@@ -53,6 +67,7 @@ const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze }) =>
             onAnalyze={handleAnalyze}
             onShowSettings={toggleSettings}
             showSettings={showSettings}
+            isLoading={isLoading}
           />
         ) : (
           <SettingsForm
