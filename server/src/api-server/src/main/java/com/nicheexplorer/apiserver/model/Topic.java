@@ -8,8 +8,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "trend")
-public class Trend {
+@Table(name = "topic")
+public class Topic {
 
     @Id
     private UUID id;

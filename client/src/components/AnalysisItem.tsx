@@ -25,7 +25,7 @@ interface AnalysisItemProps {
   query: string;
   timestamp: string;
   type: 'Research' | 'Community';
-  trends: Topic[];
+  topics: Topic[];
   feedUrl?: string;  // Add feedUrl to show the actual query used
   onDelete: (id: string) => void;
   darkMode?: boolean;
@@ -36,12 +36,12 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
   query,
   timestamp,
   type,
-  trends,
+  topics,
   feedUrl,
   onDelete,
   darkMode = false
 }) => {
-  const [showTrends, setShowTrends] = useState(false);
+  const [showTopics, setShowTopics] = useState(false);
   const [showQueryDetails, setShowQueryDetails] = useState(false);
 
   const formatDate = (isoString: string) => {
@@ -55,7 +55,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
     });
   };
 
-  const totalArticles = trends.reduce((sum, topic) => sum + topic.articleCount, 0);
+  const totalArticles = topics.reduce((sum, topic) => sum + topic.articleCount, 0);
 
   // Parse the query type and details
   const getQueryInfo = () => {
@@ -150,7 +150,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-4 text-sm">
           <span className={`${darkMode ? 'text-white/80' : 'text-foreground'} font-medium`}>
-            {trends.length} topics • {totalArticles} articles
+            {topics.length} topics • {totalArticles} articles
           </span>
           {queryInfo && (
             <Badge 
@@ -171,7 +171,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowTrends(!showTrends)}
+            onClick={() => setShowTopics(!showTopics)}
             className={`text-xs ${
               darkMode 
                 ? 'text-white/80 hover:text-white' 
@@ -179,7 +179,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
             }`}
           >
             <span>View All Topics</span>
-            {showTrends ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
+            {showTopics ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
           </Button>
           {queryInfo && (
             <Button
@@ -262,9 +262,9 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
         </div>
       )}
 
-      {showTrends && (
+      {showTopics && (
         <div className="mt-4 space-y-4">
-          {trends.map((topic, index) => (
+          {topics.map((topic, index) => (
             <TopicResult
               key={topic.id}
               {...topic}

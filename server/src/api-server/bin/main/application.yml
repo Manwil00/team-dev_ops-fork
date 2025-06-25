@@ -4,6 +4,9 @@ genai:
 topic:
   base-url: http://topic-discovery:8100
 
+fetcher:
+  base-url: http://article-fetcher:8200
+
 spring:
   datasource:
     url: jdbc:postgresql://db:5432/niche

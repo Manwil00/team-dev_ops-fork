@@ -22,7 +22,7 @@ interface Analysis {
   query: string;
   timestamp: string;
   type: 'Research' | 'Community';
-  trends: Topic[];
+  topics: Topic[];
   feedUrl?: string;
 }
 
@@ -54,7 +54,7 @@ const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
           query={analysis.query}
           timestamp={analysis.timestamp}
           type={analysis.type}
-          trends={analysis.trends}
+          topics={analysis.topics}
           feedUrl={analysis.feedUrl}
           onDelete={onDeleteAnalysis}
           darkMode={darkMode}

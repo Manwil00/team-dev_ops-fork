@@ -20,7 +20,7 @@ export interface AnalysisResponse {
   timestamp: string;
   type: string;
   feedUrl?: string;
-  trends: TopicDto[];
+  topics: TopicDto[];
 }
 
 export interface AnalyzeRequest {

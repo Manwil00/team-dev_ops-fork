@@ -402,16 +402,9 @@ public class AnalysisService {
      * Delete an analysis and all its associated topics and articles
      */
     public void deleteAnalysis(String analysisId) {
-        // Delete articles first (due to foreign key constraints)
-        String deleteArticlesSql = "DELETE FROM article WHERE analysis_id = ?";
-        jdbc.update(deleteArticlesSql, UUID.fromString(analysisId));
-        
-        // Delete topics (this will also cascade to articles if not already deleted)
-        String deleteTopicsSql = "DELETE FROM topic WHERE analysis_id = ?";
-        jdbc.update(deleteTopicsSql, UUID.fromString(analysisId));
-        
-        // Delete the analysis
-        String deleteAnalysisSql = "DELETE FROM analysis WHERE id = ?";
-        jdbc.update(deleteAnalysisSql, UUID.fromString(analysisId));
+        // cascade-safe delete
+        jdbc.update("DELETE FROM article WHERE analysis_id = ?", UUID.fromString(analysisId));
+        jdbc.update("DELETE FROM topic   WHERE analysis_id = ?", UUID.fromString(analysisId));
+        jdbc.update("DELETE FROM analysis WHERE id = ?",       UUID.fromString(analysisId));
     }
 } 
