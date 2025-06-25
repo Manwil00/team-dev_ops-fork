@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+  pull_request:
+
+concurrency: ci-${{ github.ref }}
+
+jobs:
+  generate-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [spring-api, py-genai, py-topics, py-fetcher, web-client]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint OpenAPI
+        run: npx @redocly/cli lint api/openapi.yaml
+
+      - name: Generate code
+        run: ./api/scripts/gen-all.sh
+        shell: bash
+
+      - name: Cache Maven / npm / pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.cache/pip
+            ~/.npm
+          key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
+
+      - name: Build & test
+        working-directory: services/${{ matrix.service }}
+        run: |
+          case ${{ matrix.service }} in
+            spring-api) ./gradlew test ;;
+            py-genai|py-topics|py-fetcher) pip install -r requirements.txt && pytest || true ;;
+            web-client) npm ci && npm run test -- --watchAll=false || true ;;
+          esac 

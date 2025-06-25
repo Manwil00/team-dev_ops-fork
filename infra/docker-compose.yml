@@ -2,7 +2,7 @@ services:
   # Client (React + Vite)
   client:
     build:
-      context: ./client
+      context: ../web-client
       dockerfile: Dockerfile
     ports:
       - "80:80"
@@ -15,7 +15,7 @@ services:
   # Spring Boot API server
   api-server:
     build:
-      context: ./server
+      context: ../services/spring-api
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
@@ -34,7 +34,7 @@ services:
   # GenAI service (FastAPI + Gemini)
   genai:
     build:
-      context: ./services/genai
+      context: ../services/py-genai
       dockerfile: Dockerfile
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY?err}
@@ -44,7 +44,7 @@ services:
       - niche-explorer-network
     restart: unless-stopped
     env_file:
-      - .env
+      - ../.env
 
   # Postgres with pgvector extension
   db:
@@ -61,10 +61,10 @@ services:
       - niche-explorer-network
     restart: unless-stopped
 
-  # Topic Discovery microservice (BERTopic)
+  # Topic Discovery microservice
   topic-discovery:
     build:
-      context: ./services/topic_discovery
+      context: ../services/py-topics
       dockerfile: Dockerfile
     depends_on:
       - genai
@@ -74,10 +74,10 @@ services:
       - niche-explorer-network
     restart: unless-stopped
 
-  # Article Fetcher microservice (planned)
+  # Article Fetcher microservice
   article-fetcher:
     build:
-      context: ./services/article_fetcher
+      context: ../services/py-fetcher
       dockerfile: Dockerfile
     ports:
       - "8200:8200"
