@@ -30,6 +30,13 @@ jobs:
         run: bash ./api/scripts/gen-all.sh
         shell: bash
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
       - name: Cache Maven / npm / pip
         uses: actions/cache@v4
         with:
@@ -43,7 +50,7 @@ jobs:
         working-directory: services/${{ matrix.service }}
         run: |
           case ${{ matrix.service }} in
-            spring-api) chmod +x gradlew && ./gradlew test ;;
+            spring-api) gradle test ;;
             py-genai|py-topics|py-fetcher) pip install -r requirements.txt && pytest || true ;;
             web-client) npm ci && npm run test -- --watchAll=false || true ;;
           esac
