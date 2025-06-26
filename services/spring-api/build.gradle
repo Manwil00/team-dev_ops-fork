@@ -26,7 +26,8 @@ subprojects {
     apply plugin: 'java'
     apply plugin: 'io.spring.dependency-management'
 
-    sourceCompatibility = '21'
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 
     dependencyManagement {
         imports {
@@ -37,6 +38,16 @@ subprojects {
     dependencies {
         implementation 'org.springframework.boot:spring-boot-starter-web'
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    if (project.name == 'api-server') {
+        apply plugin: 'org.springframework.boot'
     }
 }
 

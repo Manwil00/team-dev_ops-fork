@@ -387,3 +387,10 @@ spring-api/generated/
 web-client/src/api.ts
 
 .dockerignore
+
+# Gradle build caches (local / CI artifacts)
+**/.gradle/
+services/spring-api/.gradle/
+
+# Generated Spring server stub (not used in build)
+services/spring-api/src/api-server/
