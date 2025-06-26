@@ -30,6 +30,11 @@ jobs:
         run: bash ./api/scripts/gen-all.sh
         shell: bash
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
       - name: Cache Maven / npm / pip
         uses: actions/cache@v4
         with:
