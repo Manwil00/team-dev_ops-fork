@@ -30,7 +30,7 @@ sourceCompatibility = '21'
 // Generate Java client classes only
 openApiGenerate {
     generatorName = 'java'
-    inputSpec = "$rootDir/api/openapi.yaml".toString()
+    inputSpec = "$rootDir/../../api/openapi.yaml".toString()
     outputDir = "$buildDir/generated".toString()
     apiPackage = "com.nicheexplorer.generated.api"
     modelPackage = "com.nicheexplorer.generated.model"
