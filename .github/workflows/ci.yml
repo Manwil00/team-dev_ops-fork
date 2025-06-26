@@ -15,7 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [spring-api, py-genai, py-topics, py-fetcher, web-client]
+        service:
+          - name: spring-api
+            path: services/spring-api
+          - name: py-genai
+            path: services/py-genai
+          - name: py-topics
+            path: services/py-topics
+          - name: py-fetcher
+            path: services/py-fetcher
+          - name: web-client
+            path: web-client
 
     steps:
       - uses: actions/checkout@v4
@@ -45,9 +55,9 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
 
       - name: Build & test
-        working-directory: services/${{ matrix.service }}
+        working-directory: ${{ matrix.service.path }}
         run: |
-          case ${{ matrix.service }} in
+          case ${{ matrix.service.name }} in
             spring-api) chmod +x gradlew && ./gradlew test ;;
             py-genai|py-topics|py-fetcher) pip install -r requirements.txt && pytest || true ;;
             web-client) npm ci && npm run test -- --watchAll=false || true ;;
