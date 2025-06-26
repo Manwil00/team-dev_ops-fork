@@ -21,4 +21,4 @@ openapi-generator-cli generate -i api/openapi.yaml -g python-fastapi \
 
 # TypeScript client for web app (Axios-based)
 npx openapi-generator-cli generate -i api/openapi.yaml -g typescript-axios \
-  -o web-client/src/generated/api --skip-validate-spec --additional-properties=supportsES6=true,useSingleRequestParameter=true,withSeparateModelsAndApi=true
+  -o web-client/src/generated/api --skip-validate-spec --additional-properties=supportsES6=true,useSingleRequestParameter=true,withSeparateModelsAndApi=true,apiPackage=apis,modelPackage=models
