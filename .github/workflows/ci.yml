@@ -24,7 +24,7 @@ jobs:
         run: npx @redocly/cli lint api/openapi.yaml
 
       - name: Generate code
-        run: ./api/scripts/gen-all.sh
+        run: bash ./api/scripts/gen-all.sh
         shell: bash
 
       - name: Cache Maven / npm / pip
