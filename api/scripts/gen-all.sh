@@ -2,9 +2,13 @@
 
 set -euo pipefail
 
-# Java Spring Boot API server
-npx openapi-generator-cli generate -i api/openapi.yaml -g spring \
-  -o services/spring-api/generated --skip-validate-spec
+# Generate Java classes (models, api, invoker)
+npx openapi-generator-cli generate -i api/openapi.yaml -g java \
+  -o services/spring-api/src/api-server --skip-validate-spec \
+  --api-package=com.nicheexplorer.generated.api \
+  --model-package=com.nicheexplorer.generated.model \
+  --invoker-package=com.nicheexplorer.generated.invoker \
+  --additional-properties=library=native,useJakartaEe=true,serializationLibrary=jackson
 
 # Python FastAPI server models - generate Pydantic models for each service
 npx openapi-generator-cli generate -i api/openapi.yaml -g python-fastapi \

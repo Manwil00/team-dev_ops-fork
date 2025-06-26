@@ -5,7 +5,7 @@
 import arxiv
 import requests
 import feedparser
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from openapi_server.models.article import Article
 from urllib.parse import quote
@@ -49,13 +49,18 @@ class ArxivFetcher:
     # ------------------------------------------------------------------
 
     def _map_result(self, res: arxiv.Result) -> Article:
+        # Ensure timezone-aware datetime (UTC) for JSON serialisation
+        published = res.published
+        if published and published.tzinfo is None:
+            published = published.replace(tzinfo=timezone.utc)
+
         return Article(
             id=res.get_short_id(),
             title=res.title,
             link=res.entry_id,
             summary=res.summary,
             authors=[a.name for a in res.authors],
-            published=res.published,
+            published=published,
             source="arxiv"
         )
 
@@ -86,7 +91,7 @@ class ArxivFetcher:
             published = None
             if hasattr(entry, "published"):
                 try:
-                    published = datetime.strptime(entry.published, "%Y-%m-%dT%H:%M:%SZ")
+                    published = datetime.strptime(entry.published, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
                 except Exception:
                     published = None
 

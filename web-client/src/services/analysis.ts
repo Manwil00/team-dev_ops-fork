@@ -24,7 +24,7 @@ export class AnalysisService {
    * Start a new analysis
    */
   async startAnalysis(request: AnalyzeRequest): Promise<string> {
-    const response = await analysisApi.startAnalysis(request);
+    const response = await analysisApi.startAnalysis({ analyzeRequest: request });
     const id = (response.data as any)?.id;
     return id as string;
   }
@@ -33,7 +33,7 @@ export class AnalysisService {
    * Get list of analyses
    */
   async getAnalyses(limit?: number): Promise<AnalysisResponse[]> {
-    const response = await analysisApi.listAnalyses(limit);
+    const response = await analysisApi.listAnalyses({ limit });
 
     // The Spring backend currently returns a bare array of AnalysisResponse
     // while the OpenAPI spec expects an envelope { total, limit, offset, items }
@@ -61,7 +61,7 @@ export class AnalysisService {
    * Get a specific analysis by ID
    */
   async getAnalysis(id: string): Promise<AnalysisResponse> {
-    const response = await analysisApi.getAnalysis(id);
+    const response = await analysisApi.getAnalysis({ id });
     return response.data;
   }
 
@@ -69,14 +69,14 @@ export class AnalysisService {
    * Delete an analysis
    */
   async deleteAnalysis(id: string): Promise<void> {
-    await analysisApi.deleteAnalysis(id);
+    await analysisApi.deleteAnalysis({ id });
   }
 
   /**
    * Get available source categories (for ArXiv)
    */
   async getSourceCategories(source: GetSourceCategoriesSourceEnum): Promise<{ [key: string]: Array<string>; }> {
-    const response = await articlesApi.getSourceCategories(source);
+    const response = await articlesApi.getSourceCategories({ source });
     return response.data;
   }
 
@@ -84,7 +84,7 @@ export class AnalysisService {
    * Discover topics for articles
    */
   async discoverTopics(request: TopicDiscoveryRequest): Promise<TopicDiscoveryResponse> {
-    const response = await topicsApi.discoverTopics(request);
+    const response = await topicsApi.discoverTopics({ topicDiscoveryRequest: request });
     return response.data;
   }
 }
@@ -101,5 +101,5 @@ export type {
   TopicDiscoveryResponse,
   Article,
   Topic,
-  AnalysisResponseSourceTypeEnum
+  AnalysisResponseTypeEnum
 } from '../generated/api'; 
