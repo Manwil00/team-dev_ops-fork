@@ -62,4 +62,4 @@ src/
 * **Technical accuracy** – uses domain-specific patterns to identify computer science terminology
 * **Relevance scoring** – clustering confidence provides meaningful relevance scores (0-100)
 
-This service ensures that topics are semantically meaningful and represent distinct research areas rather than generic keyword buckets. 
+This service ensures that topics are semantically meaningful and represent distinct research areas rather than generic keyword buckets.

@@ -1,8 +1,8 @@
 fastapi
 uvicorn[standard]
+pydantic
 hdbscan
 umap-learn
 scikit-learn
 numpy
 httpx
-arxiv 

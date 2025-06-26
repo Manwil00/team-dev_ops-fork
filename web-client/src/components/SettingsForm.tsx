@@ -37,21 +37,21 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('cs.CV');
   const [arxivCategories, setArxivCategories] = useState<Record<string, string[]>>({});
   const [showCategories, setShowCategories] = useState(false);
-  
+
   // Load ArXiv categories
   useEffect(() => {
     if (source === 'research' && !autoDetect) {
-      fetch('/api/arxiv-categories')
+      fetch('/api/categories?source=arxiv')
         .then(res => res.json())
         .then(data => setArxivCategories(data))
         .catch(err => console.error('Failed to load ArXiv categories:', err));
     }
   }, [source, autoDetect]);
-  
+
   // Build advanced query when search terms or category changes
   useEffect(() => {
     if (advancedMode && searchTerms.trim() && source === 'research') {
-      fetch('/api/build-advanced-query', {
+      fetch('/api/query/build?source=arxiv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ search_terms: searchTerms, category: selectedCategory })
@@ -70,7 +70,7 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
             Automatically determine if query is research or community focused
           </p>
         </div>
-        <Switch 
+        <Switch
           id="auto-detect"
           checked={autoDetect}
           onCheckedChange={onAutoDetectChange}
@@ -119,7 +119,7 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
                     Build advanced queries with specific search terms
                   </p>
                 </div>
-                <Switch 
+                <Switch
                   id="advanced-mode"
                   checked={advancedMode}
                   onCheckedChange={setAdvancedMode}
@@ -164,7 +164,7 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
                       </select>
                       <Button
                         type="button"
-                        variant="ghost" 
+                        variant="ghost"
                         size="sm"
                         onClick={() => setShowCategories(!showCategories)}
                         className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1"
@@ -230,9 +230,9 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
         >
           Back to Input
         </Button>
-        
+
         <div className="relative">
-          <Button 
+          <Button
             onClick={onAnalyze}
             className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:bg-primary/90 transition-all duration-300"
             variant="default"
@@ -268,4 +268,4 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
   );
 };
 
-export default SettingsForm; 
+export default SettingsForm;

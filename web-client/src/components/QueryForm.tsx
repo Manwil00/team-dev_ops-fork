@@ -13,10 +13,10 @@ interface QueryFormProps {
   isLoading?: boolean;
 }
 
-const QueryForm: React.FC<QueryFormProps> = ({ 
-  query, 
-  onQueryChange, 
-  onAnalyze, 
+const QueryForm: React.FC<QueryFormProps> = ({
+  query,
+  onQueryChange,
+  onAnalyze,
   onShowSettings,
   showSettings = false,
   isLoading = false
@@ -40,7 +40,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
 
       <div className="flex justify-between items-center mt-6">
         <div className="relative">
-          <Button 
+          <Button
             variant="outline"
             onClick={onShowSettings}
             className="border-black/10 transition-all duration-300 hover:border-primary/50"
@@ -64,11 +64,11 @@ const QueryForm: React.FC<QueryFormProps> = ({
             `
           }} />
         </div>
-        
+
         {!showSettings && (
           <div className="relative">
-            <Button 
-              onClick={onAnalyze} 
+            <Button
+              onClick={onAnalyze}
               disabled={!query.trim() || isLoading}
               className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:bg-primary/90 transition-all duration-300 disabled:opacity-50"
               variant="default"
@@ -108,4 +108,4 @@ const QueryForm: React.FC<QueryFormProps> = ({
   );
 };
 
-export default QueryForm; 
+export default QueryForm;

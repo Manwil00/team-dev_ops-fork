@@ -1,43 +1,45 @@
-from fastapi import APIRouter, HTTPException
-from typing import Dict, List
-from pydantic import BaseModel
-from ..services.query_generation_service import query_service
 import logging
+from fastapi import APIRouter, HTTPException, Path, Body
+from niche_explorer_models.models.query_builder_request import QueryBuilderRequest
+from niche_explorer_models.models.query_builder_response import QueryBuilderResponse
+from ..services.query_generation_service import query_service
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/arxiv", tags=["arxiv"])
+router = APIRouter(prefix="", tags=["AI"])
 
-class AdvancedQueryRequest(BaseModel):
-    search_terms: str
-    category: str
-
-class AdvancedQueryResponse(BaseModel):
-    query: str
-    description: str
-
-@router.get("/categories")
-async def get_arxiv_categories() -> Dict[str, List[str]]:
-    """Get available ArXiv categories organized by field"""
+@router.post("/query/build/{source}", response_model=None)
+async def build_source_query(
+    source: str = Path(..., description="Target data source"),
+    payload: dict = Body(...)
+):
+    """Generate optimized query for a specific data source using AI"""
     try:
-        return query_service.get_category_suggestions()
-    except Exception as e:
-        logger.error(f"Error getting ArXiv categories: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Parse incoming payload once
+        req_obj = QueryBuilderRequest.from_dict(payload)
 
-@router.post("/build-query", response_model=AdvancedQueryResponse)
-async def build_advanced_query(req: AdvancedQueryRequest):
-    """Build an advanced ArXiv query from search terms and category"""
-    try:
-        query = query_service.build_advanced_query(req.search_terms, req.category)
-        description = f"Search for '{req.search_terms}' in {req.category} category"
-        
-        return AdvancedQueryResponse(
+        if source.lower() == "arxiv":
+            # Build arXiv query
+            category = req_obj.filters.category if req_obj.filters and req_obj.filters.category else "cs.CV"
+            query = query_service.build_advanced_query(req_obj.search_terms, category)
+            description = f"Advanced arXiv search for '{req_obj.search_terms}' in category {category}"
+        elif source.lower() == "reddit":
+            # Build Reddit query (subreddit name)
+            subreddit = req_obj.filters.subreddit if req_obj.filters and req_obj.filters.subreddit else "MachineLearning"
+            query = subreddit
+            description = f"Reddit search in r/{subreddit} for '{req_obj.search_terms}'"
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported source: {source}")
+
+        response_obj = QueryBuilderResponse(
             query=query,
-            description=description
+            description=description,
+            source=source.lower()
         )
+        return JSONResponse(content=response_obj.to_dict())
     except Exception as e:
-        logger.error(f"Error building advanced query: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Failed to build query for source {source}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to build query: {str(e)}")
 
-# Search endpoint is now handled by the separate article-fetcher service. 
+# Search endpoint is now handled by the separate article-fetcher service.

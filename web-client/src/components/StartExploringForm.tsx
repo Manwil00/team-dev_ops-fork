@@ -25,20 +25,20 @@ const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze }) =>
 
     const req: AnalyzeRequest = {
       query,
-      autoDetect,
-      maxArticles,
+      auto_detect: autoDetect,
+      max_articles: maxArticles,
     };
 
     if (!autoDetect) {
-      req.source = source;
-      req.feed = feed;
+      req.source = source as 'arxiv' | 'reddit';
+      req.category = feed;
     }
 
     try {
       await onAnalyze(req);
     } finally {
       const duration = Date.now() - startTime;
-      const minDisplayTime = 500; // 0.5 seconds
+      const minDisplayTime = 3000; // ensure spinner visible ≥ 3 s for UX clarity
       if (duration < minDisplayTime) {
         setTimeout(() => setIsLoading(false), minDisplayTime - duration);
       } else {

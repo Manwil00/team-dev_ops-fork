@@ -1,32 +1,32 @@
-# Build stage
-FROM node:18-alpine AS build
+# Build stage: Responsible for building the frontend assets
+FROM node:20 AS build
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files and install dependencies
+COPY web-client/package*.json ./
+RUN npm install --legacy-peer-deps
 
-# Install dependencies
-RUN npm ci
+# Copy the entire web-client directory.
+# This assumes the API client has already been generated locally
+# and exists in `web-client/src/generated/api`.
+COPY web-client ./web-client
 
-# Copy the rest of the application
-COPY . .
+# Set the working directory and run the standard build command.
+WORKDIR /app/web-client
+RUN rm -rf dist && npm run build
 
-# Build the application
-RUN npm run build
-
-# Production stage
+# Production stage: Responsible for serving the built assets
 FROM nginx:alpine
 
-# Copy built assets from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+# Copy built assets from the previous build stage
+COPY --from=build /app/web-client/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy the Nginx configuration file
+COPY --from=build /app/web-client/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
+# Expose port 80 for the web server
 EXPOSE 80
 
-# Start nginx
+# Start Nginx in the foreground
 CMD ["nginx", "-g", "daemon off;"]

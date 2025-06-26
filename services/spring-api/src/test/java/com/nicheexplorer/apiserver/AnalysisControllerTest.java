@@ -26,7 +26,7 @@ class AnalysisControllerTest {
     void healthCheckEndpoint() {
         String url = "http://localhost:" + port + "/api/analysis/history";
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-        
+
         // Should return 200 even if no analyses exist
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -40,10 +40,10 @@ class AnalysisControllerTest {
                 "mode": "auto"
             }
             """;
-        
+
         ResponseEntity<String> response = restTemplate.postForEntity(url, requestBody, String.class);
-        
+
         // Expect 500 because downstream services aren't running
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
-} 
+}

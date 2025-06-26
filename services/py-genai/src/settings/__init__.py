@@ -10,4 +10,4 @@ class GenAiSettings:
     DEFAULT_RESEARCH_CATEGORY: str = "cs.CV"
     DEFAULT_COMMUNITY_FEED: str = "https://www.reddit.com/r/computervision/.rss"
 
-settings = GenAiSettings() 
+settings = GenAiSettings()

@@ -47,4 +47,4 @@ for ip in $GITHUB_IPS; do
 done
 
 echo "Security group update completed!"
-echo "Don't forget to also allow SSH from your own IP for manual access." 
+echo "Don't forget to also allow SSH from your own IP for manual access."

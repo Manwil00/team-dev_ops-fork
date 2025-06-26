@@ -28,9 +28,9 @@ CREATE TABLE topic (
     relevance INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT now(),
     embedding vector(768), -- Using 768-dimensional embeddings (compatible with all-MiniLM-L6-v2)
-    
+
     -- Foreign key relationship to analysis table
-    CONSTRAINT fk_topic_analysis 
+    CONSTRAINT fk_topic_analysis
         FOREIGN KEY (analysis_id) REFERENCES analysis(id) ON DELETE CASCADE
 );
 
@@ -45,13 +45,13 @@ CREATE TABLE article (
     content_hash VARCHAR(64), -- SHA-256 hash to prevent duplicates
     created_at TIMESTAMP DEFAULT now(),
     embedding vector(768), -- Vector embedding of article content
-    
+
     -- Foreign key relationships
-    CONSTRAINT fk_article_topic 
+    CONSTRAINT fk_article_topic
         FOREIGN KEY (topic_id) REFERENCES topic(id) ON DELETE CASCADE,
-    CONSTRAINT fk_article_analysis 
+    CONSTRAINT fk_article_analysis
         FOREIGN KEY (analysis_id) REFERENCES analysis(id) ON DELETE CASCADE,
-    
+
     -- Prevent duplicate articles per topic
     CONSTRAINT unique_article_per_topic UNIQUE (topic_id, content_hash)
 );
@@ -86,4 +86,4 @@ COMMENT ON TABLE article IS 'Individual articles that belong to topics, with the
 COMMENT ON COLUMN topic.embedding IS '768-dimensional vector embedding for semantic similarity search using Google Gemini';
 COMMENT ON COLUMN article.embedding IS '768-dimensional vector embedding of article content for detailed similarity search';
 COMMENT ON INDEX topic_embedding_idx IS 'IVFFlat index for fast cosine similarity search on topic embeddings';
-COMMENT ON INDEX article_embedding_idx IS 'IVFFlat index for fast cosine similarity search on article embeddings'; 
+COMMENT ON INDEX article_embedding_idx IS 'IVFFlat index for fast cosine similarity search on article embeddings';

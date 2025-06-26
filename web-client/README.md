@@ -150,7 +150,7 @@ useEffect(() => {
 }, []);
 
 // CSS styling with dynamic width
-style={{ 
+style={{
   width: animateBar ? `${relevance}%` : '0%',
   transition: 'width 1s ease-out'
 }}
@@ -253,7 +253,7 @@ The frontend automatically detects the API server at `http://localhost:8080` in 
 
 ### **Breakpoint Strategy**
 - **Mobile**: 320px - 768px
-- **Tablet**: 768px - 1024px  
+- **Tablet**: 768px - 1024px
 - **Desktop**: 1024px+
 - **Large Desktop**: 1440px+
 

@@ -1,41 +1,17 @@
 import React from 'react';
 import AnalysisItem from './AnalysisItem';
-
-interface Article {
-  id: string;
-  title: string;
-  link: string;
-  snippet: string;
-}
-
-interface Topic {
-  id: string;
-  title: string;
-  description: string;
-  articleCount: number;
-  relevance: number;
-  articles?: Article[];
-}
-
-interface Analysis {
-  id: string;
-  query: string;
-  timestamp: string;
-  type: 'Research' | 'Community';
-  topics: Topic[];
-  feedUrl?: string;
-}
+import { AnalysisResponse } from '../services/analysis';
 
 interface AnalysisHistoryProps {
-  analyses: Analysis[];
+  analyses: AnalysisResponse[];
   onDeleteAnalysis: (id: string) => void;
   darkMode?: boolean;
 }
 
-const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({ 
-  analyses, 
-  onDeleteAnalysis, 
-  darkMode = false 
+const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
+  analyses,
+  onDeleteAnalysis,
+  darkMode = false
 }) => {
   if (analyses.length === 0) {
     return (
@@ -52,10 +28,10 @@ const AnalysisHistory: React.FC<AnalysisHistoryProps> = ({
           key={analysis.id}
           id={analysis.id}
           query={analysis.query}
-          timestamp={analysis.timestamp}
-          type={analysis.type}
-          topics={analysis.topics}
-          feedUrl={analysis.feedUrl}
+          timestamp={(analysis as any).created_at}
+          type={(analysis as any).type === 'research' ? 'Research' : 'Community'}
+          topics={(analysis.topics as any) ?? []}
+          feedUrl={(analysis as any).feed_url}
           onDelete={onDeleteAnalysis}
           darkMode={darkMode}
         />

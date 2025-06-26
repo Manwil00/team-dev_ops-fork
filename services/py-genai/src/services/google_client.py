@@ -18,7 +18,7 @@ class GoogleGenAIClient:
     def __init__(self):
         # No need to create client instance with new API
         pass
-    
+
     def classify_source(self, query: str) -> tuple[str, str]:
         """Classify query to determine research or community source and generate appropriate feed identifier"""
         prompt = (
@@ -35,7 +35,7 @@ class GoogleGenAIClient:
             "- 'transformer architectures' -> 'all:\"transformer architecture\"+AND+cat:cs.LG'\n"
             f"User query: {query}"
         )
-        
+
         try:
             model = genai.GenerativeModel(settings.GENERATION_MODEL)
             response = model.generate_content(
@@ -51,4 +51,4 @@ class GoogleGenAIClient:
             return "research", "cs.CV"
 
 # Singleton instance
-google_client = GoogleGenAIClient() 
+google_client = GoogleGenAIClient()

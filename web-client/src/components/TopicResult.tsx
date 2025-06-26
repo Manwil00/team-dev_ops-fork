@@ -2,13 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
-
-interface Article {
-  id: string;
-  title: string;
-  link: string;
-  snippet: string;
-}
+import { Article } from '../services/analysis';
 
 interface TopicResultProps {
   title: string;
@@ -139,8 +133,8 @@ const TopicResult: React.FC<TopicResultProps> = ({
                         </a>
                       </div>
                     </div>
-                    {article.snippet && (
-                      <p className={`mt-1 ${isExpanded ? '' : 'line-clamp-2'} ${darkMode ? 'text-white/60' : 'text-muted-foreground'}`}>{article.snippet}</p>
+                    {article.summary && (
+                      <p className={`mt-1 ${isExpanded ? '' : 'line-clamp-2'} ${darkMode ? 'text-white/60' : 'text-muted-foreground'}`}>{article.summary}</p>
                     )}
                   </div>
                 );
@@ -158,4 +152,4 @@ const TopicResult: React.FC<TopicResultProps> = ({
   );
 };
 
-export default TopicResult; 
+export default TopicResult;

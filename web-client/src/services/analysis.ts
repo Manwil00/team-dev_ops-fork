@@ -1,80 +1,105 @@
-export interface ArticleDto {
-  id: string;
-  title: string;
-  link: string;
-  snippet: string;
-}
+// OpenAPI-first service - uses generated TypeScript client
+import { AnalysisApi, ArticlesApi, TopicsApi, Configuration } from '../generated/api';
+import type { 
+  AnalysisResponse, 
+  AnalyzeRequest,
+  GetSourceCategoriesSourceEnum,
+  TopicDiscoveryRequest,
+  TopicDiscoveryResponse,
+  ListAnalyses200Response
+} from '../generated/api';
 
-export interface TopicDto {
-  id: string;
-  title: string;
-  description: string;
-  articleCount: number;
-  relevance: number;
-  articles: ArticleDto[];
-}
+// Create configuration for the API client
+const configuration = new Configuration({
+  basePath: "http://localhost:8080", 
+});
 
-export interface AnalysisResponse {
-  id: string;
-  query: string;
-  timestamp: string;
-  type: string;
-  feedUrl?: string;
-  topics: TopicDto[];
-}
+// Initialize API clients
+const analysisApi = new AnalysisApi(configuration);
+const articlesApi = new ArticlesApi(configuration);
+const topicsApi = new TopicsApi(configuration);
 
-export interface AnalyzeRequest {
-  query: string;
-  autoDetect?: boolean;
-  maxArticles?: number;
-  source?: string; // "research" | "community"
-  feed?: string;   // e.g. "cs.CV" or "computervision"
-}
-
-export async function analyze(request: AnalyzeRequest): Promise<AnalysisResponse> {
-  const res = await fetch("http://localhost:8080/api/analyze", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(request),
-  });
-
-  if (!res.ok) {
-    throw new Error(`Server returned ${res.status}`);
+export class AnalysisService {
+  /**
+   * Start a new analysis
+   */
+  async startAnalysis(request: AnalyzeRequest): Promise<string> {
+    const response = await analysisApi.startAnalysis(request);
+    const id = (response.data as any)?.id;
+    return id as string;
   }
 
-  return res.json();
-}
+  /**
+   * Get list of analyses
+   */
+  async getAnalyses(limit?: number): Promise<AnalysisResponse[]> {
+    const response = await analysisApi.listAnalyses(limit);
 
-export async function getAnalysisHistory(queryFilter?: string, limit: number = 20): Promise<AnalysisResponse[]> {
-  const params = new URLSearchParams();
-  if (queryFilter) params.append('query', queryFilter);
-  params.append('limit', limit.toString());
+    // The Spring backend currently returns a bare array of AnalysisResponse
+    // while the OpenAPI spec expects an envelope { total, limit, offset, items }
+    // Support both formats to avoid runtime errors.
 
-  const res = await fetch(`http://localhost:8080/api/analysis/history?${params}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+    const data = response.data as unknown;
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch analysis history: ${res.status}`);
+    // 1) Spec-compliant envelope object
+    if (data && typeof data === 'object' && 'items' in (data as any)) {
+      const envelope = data as ListAnalyses200Response;
+      return envelope.items ?? [];
+    }
+
+    // 2) Plain array fallback
+    if (Array.isArray(data)) {
+      return data as AnalysisResponse[];
+    }
+
+    // 3) Unexpected shape – log and return empty list to keep UI stable
+    console.warn('Unexpected /api/analyses response shape', data);
+    return [];
   }
 
-  return res.json();
+  /**
+   * Get a specific analysis by ID
+   */
+  async getAnalysis(id: string): Promise<AnalysisResponse> {
+    const response = await analysisApi.getAnalysis(id);
+    return response.data;
+  }
+
+  /**
+   * Delete an analysis
+   */
+  async deleteAnalysis(id: string): Promise<void> {
+    await analysisApi.deleteAnalysis(id);
+  }
+
+  /**
+   * Get available source categories (for ArXiv)
+   */
+  async getSourceCategories(source: GetSourceCategoriesSourceEnum): Promise<{ [key: string]: Array<string>; }> {
+    const response = await articlesApi.getSourceCategories(source);
+    return response.data;
+  }
+
+  /**
+   * Discover topics for articles
+   */
+  async discoverTopics(request: TopicDiscoveryRequest): Promise<TopicDiscoveryResponse> {
+    const response = await topicsApi.discoverTopics(request);
+    return response.data;
+  }
 }
 
-export async function deleteAnalysis(analysisId: string): Promise<void> {
-  const res = await fetch(`http://localhost:8080/api/analysis/${analysisId}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+// Export a singleton instance
+export const analysisService = new AnalysisService();
 
-  if (!res.ok) {
-    throw new Error(`Failed to delete analysis: ${res.status}`);
-  }
-} 
+// Re-export types from generated client
+export type {
+  AnalysisResponse,
+  AnalyzeRequest,
+  GetSourceCategoriesSourceEnum,
+  TopicDiscoveryRequest,
+  TopicDiscoveryResponse,
+  Article,
+  Topic,
+  AnalysisResponseSourceTypeEnum
+} from '../generated/api'; 

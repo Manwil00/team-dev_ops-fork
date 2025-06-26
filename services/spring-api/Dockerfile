@@ -3,8 +3,11 @@ FROM gradle:8.7-jdk21 AS build
 # ---- build api-server JAR ----
 WORKDIR /workspace
 
+# Copy the OpenAPI spec
+COPY api/openapi.yaml ./api/openapi.yaml
+
 # Copy Gradle wrapper, settings, and source code
-COPY . .
+COPY services/spring-api/ .
 
 # Build only the api-server sub-module to keep the image small
 RUN gradle :api-server:bootJar --no-daemon
@@ -19,4 +22,4 @@ COPY --from=build /workspace/src/api-server/build/libs/*.jar app.jar
 # Expose Spring Boot port
 EXPOSE 8080
 
-ENTRYPOINT ["java","-jar","app.jar"] 
+ENTRYPOINT ["java","-jar","app.jar"]

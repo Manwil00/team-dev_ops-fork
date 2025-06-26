@@ -132,4 +132,4 @@ class QueryGenerationService:
         return f'all:"{search_terms}"+AND+cat:{best_category}' if search_terms else f"cat:{best_category}"
 
 # Singleton – importable as `query_service`
-query_service = QueryGenerationService() 
+query_service = QueryGenerationService()

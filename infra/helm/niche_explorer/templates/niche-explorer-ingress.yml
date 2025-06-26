@@ -41,7 +41,7 @@ spec:
             name: {{ .Values.server.rss_fetcher.name }}
             port:
               number: {{ .Values.server.rss_fetcher.port }}
-              
+
       - path: "/{{ .Values.genai.name }}"
         pathType: Prefix
         backend:

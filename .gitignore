@@ -377,3 +377,12 @@ sketch
 # gitignore template for Vue.js projects
 #
 # Recommended template: Node.gitignore
+
+# OpenAPI Generated Code
+**/generated/
+services/*/generated/
+services/*/client/
+spring-api/generated/
+web-client/src/api.ts
+
+.dockerignore

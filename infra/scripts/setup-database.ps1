@@ -6,19 +6,19 @@ param(
     [Parameter(Mandatory=$false)]
     [ValidateSet("init", "reset", "status", "start")]
     [string]$Action = "init",
-    
+
     [Parameter(Mandatory=$false)]
     [string]$DbHost = "localhost",
-    
+
     [Parameter(Mandatory=$false)]
     [string]$DbPort = "5432",
-    
+
     [Parameter(Mandatory=$false)]
     [string]$DbName = "niche",
-    
+
     [Parameter(Mandatory=$false)]
     [string]$DbUser = "niche_user",
-    
+
     [Parameter(Mandatory=$false)]
     [string]$DbPassword = "niche_pass"
 )
@@ -64,49 +64,49 @@ function Test-DatabaseConnection {
 function Start-DatabaseContainer {
     Write-Step "Starting database container..."
     docker compose up db -d
-    
+
     Write-Step "Waiting for database to be ready..."
     $maxAttempts = 30
     $attempt = 0
-    
+
     do {
         Start-Sleep -Seconds 2
         $attempt++
         Write-Info "Attempt $attempt/$maxAttempts"
     } while (-not (Test-DatabaseConnection) -and $attempt -lt $maxAttempts)
-    
+
     if (-not (Test-DatabaseConnection)) {
         throw "Database failed to start after $maxAttempts attempts"
     }
-    
+
     Write-Info "Database is ready!"
 }
 
 function Show-DatabaseStatus {
     Write-Step "Checking database status..."
-    
+
     # Check container status
     $containerStatus = docker ps --filter "name=team-dev_ops-db-1" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
     Write-Info "Container Status:"
     Write-Host "  $containerStatus" -ForegroundColor White
-    
+
     # Check connection
     if (Test-DatabaseConnection) {
         Write-Info "Database connection: ✅ Connected"
-        
+
         # Show table information if available
         Write-Step "Checking database schema..."
         try {
             # Check if tables exist
             $tablesExist = docker exec team-dev_ops-db-1 psql -U $DbUser -d $DbName -t -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'analysis');" 2>$null
-            
+
             if ($tablesExist.Trim() -eq "t") {
                 Write-Info "Schema: ✅ Tables exist"
-                
+
                 # Show table counts
                 $analysisCount = docker exec team-dev_ops-db-1 psql -U $DbUser -d $DbName -t -c "SELECT COUNT(*) FROM analysis;" 2>$null
                 $trendCount = docker exec team-dev_ops-db-1 psql -U $DbUser -d $DbName -t -c "SELECT COUNT(*) FROM trend;" 2>$null
-                
+
                 Write-Info "Analysis records: $($analysisCount.Trim())"
                 Write-Info "Trend records: $($trendCount.Trim())"
             } else {
@@ -122,13 +122,13 @@ function Show-DatabaseStatus {
 
 function Initialize-Database {
     Write-Header "Initializing Niche Explorer Database"
-    
+
     if (-not (Test-DatabaseConnection)) {
         Start-DatabaseContainer
     } else {
         Write-Step "Database already running"
     }
-    
+
     Write-Step "Database initialization complete!"
     Write-Info ""
     Write-Info "💡 Note: Database migrations are handled automatically by Spring Boot"
@@ -144,22 +144,22 @@ function Initialize-Database {
 function Reset-Database {
     Write-Header "Resetting Niche Explorer Database"
     Write-Host "⚠️  WARNING: This will delete all data!" -ForegroundColor Red
-    
+
     $confirmation = Read-Host "Are you sure you want to reset the database? (yes/no)"
     if ($confirmation -ne "yes") {
         Write-Host "Database reset cancelled" -ForegroundColor Yellow
         return
     }
-    
+
     Write-Step "Stopping services..."
     docker compose down
-    
+
     Write-Step "Removing database volume..."
     docker volume rm team-dev_ops_postgres_data 2>$null
-    
+
     Write-Step "Starting fresh database..."
     Start-DatabaseContainer
-    
+
     Write-Info ""
     Write-Info "✅ Database reset complete!"
     Write-Info "   Start the API server to run migrations: docker compose up api-server -d"
@@ -167,13 +167,13 @@ function Reset-Database {
 
 function Start-Application {
     Write-Header "Starting Niche Explorer Application"
-    
+
     Write-Step "Starting all services..."
     docker compose up -d
-    
+
     Write-Step "Waiting for services to be ready..."
     Start-Sleep -Seconds 5
-    
+
     Write-Info ""
     Write-Info "🚀 Application started!"
     Write-Info "   Frontend: http://localhost:3000"
@@ -185,7 +185,7 @@ function Start-Application {
 
 function Show-Help {
     Write-Header "Niche Explorer Database Management"
-    
+
     Write-Host "DESCRIPTION:" -ForegroundColor Yellow
     Write-Host "  Manages the Niche Explorer database and application startup." -ForegroundColor White
     Write-Host "  Database migrations are handled automatically by Spring Boot." -ForegroundColor White
@@ -251,4 +251,4 @@ try {
 }
 
 Write-Host ""
-Write-Host "✅ Operation completed successfully!" -ForegroundColor Green 
+Write-Host "✅ Operation completed successfully!" -ForegroundColor Green

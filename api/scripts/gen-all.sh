@@ -2,21 +2,23 @@
 
 set -euo pipefail
 
-SPEC_PATH="$(git rev-parse --show-toplevel)/api/openapi.yaml"
-PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+# Java Spring Boot API server
+openapi-generator-cli generate -i api/openapi.yaml -g spring \
+  -o services/spring-api/generated --skip-validate-spec
 
-# Java – Spring Boot stubs
-openapi-generator-cli generate \
-  -i "$SPEC_PATH" \
-  -g spring \
-  -o "$PROJECT_ROOT/services/spring-api/generated" \
-  --skip-validate-spec
+# Python FastAPI server models - generate Pydantic models for each service
+openapi-generator-cli generate -i api/openapi.yaml -g python-fastapi \
+  -o services/py-genai/generated --skip-validate-spec \
+  --additional-properties=packageName=niche_explorer_models
 
-# Python – client
-openapi-python-client \
-  --path "$SPEC_PATH" \
-  --output "$PROJECT_ROOT/services/python-client" \
-  --config "$PROJECT_ROOT/api/scripts/py-config.json" || true
+openapi-generator-cli generate -i api/openapi.yaml -g python-fastapi \
+  -o services/py-fetcher/generated --skip-validate-spec \
+  --additional-properties=packageName=niche_explorer_models
 
-# TypeScript SDK for the web client
-npx openapi-typescript "$SPEC_PATH" -o "$PROJECT_ROOT/web-client/src/api.ts" 
+openapi-generator-cli generate -i api/openapi.yaml -g python-fastapi \
+  -o services/py-topics/generated --skip-validate-spec \
+  --additional-properties=packageName=niche_explorer_models
+
+# TypeScript client for web app (Axios-based)
+npx openapi-generator-cli generate -i api/openapi.yaml -g typescript-axios \
+  -o web-client/src/generated/api --skip-validate-spec --additional-properties=supportsES6=true,useSingleRequestParameter=true,withSeparateModelsAndApi=true

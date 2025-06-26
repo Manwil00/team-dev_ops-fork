@@ -12,9 +12,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
-      name: aws 
-      url: 'https://client.${{ github.event.inputs.ec2_public_ip }}.nip.io' 
-    steps:      
+      name: aws
+      url: 'https://client.${{ github.event.inputs.ec2_public_ip }}.nip.io'
+    steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 

@@ -66,4 +66,4 @@ src/
 
 ---
 
-This document intentionally omits implementation code so it can be pasted anywhere without syntax-highlighting noise while still giving developers a clear picture of how the GenAI layer feeds the rest of NicheExplorer. 
+This document intentionally omits implementation code so it can be pasted anywhere without syntax-highlighting noise while still giving developers a clear picture of how the GenAI layer feeds the rest of NicheExplorer.

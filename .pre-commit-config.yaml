@@ -1,10 +1,15 @@
 repos:
-  - repo: https://github.com/Redocly/openapi-cli
-    rev: v1.0.0-beta.92
+  - repo: local
     hooks:
-      - id: openapi-cli-lint
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: end-of-file-fixer
-      - id: trailing-whitespace 
+      - id: openapi-lint
+        name: Lint OpenAPI spec
+        entry: npx
+        args: ["--yes", "@redocly/cli", "lint", "api/openapi.yaml"]
+        language: system
+        files: api/openapi\.yaml$
+        pass_filenames: false
+
+# Global configuration
+default_stages: [pre-commit]
+fail_fast: false
+minimum_pre_commit_version: "3.0.0"

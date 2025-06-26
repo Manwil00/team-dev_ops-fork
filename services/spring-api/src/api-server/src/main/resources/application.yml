@@ -1,5 +1,5 @@
 genai:
-  base-url: http://genai:8000 
+  base-url: http://genai:8000
 
 topic:
   base-url: http://topic-discovery:8100
@@ -20,4 +20,4 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
 flyway:
-  baseline-on-migrate: true 
+  baseline-on-migrate: false

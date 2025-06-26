@@ -3,62 +3,48 @@ import Header from './components/Header';
 import StartExploringForm from './components/StartExploringForm';
 import AnalysisHistory from './components/AnalysisHistory';
 import { AspectRatio } from "./components/ui/aspect-ratio";
-import { analyze, getAnalysisHistory, deleteAnalysis, AnalyzeRequest } from "./services/analysis";
+import { analysisService, AnalyzeRequest, AnalysisResponse } from "./services/analysis";
 
-interface Article {
-  id: string;
-  title: string;
-  link: string;
-  snippet: string;
-}
-
-interface Topic {
-  id: string;
-  title: string;
-  description: string;
-  articleCount: number;
-  relevance: number;
-  articles?: Article[];
-}
-
-interface Analysis {
-  id: string;
-  query: string;
-  timestamp: string;
-  type: 'Research' | 'Community';
-  topics: Topic[];
-  feedUrl?: string;
-}
+// Use OpenAPI generated types directly - no local interfaces needed
 
 function App() {
-  const [analyses, setAnalyses] = useState<Analysis[]>([]);
+  const [analyses, setAnalyses] = useState<AnalysisResponse[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
-  const handleAnalyze = async (req: AnalyzeRequest) => {
-    try {
-      const response = await analyze(req);
+  const handleAnalyze = async (req: AnalyzeRequest): Promise<void> => {
+    return new Promise<void>(async (resolve) => {
+      try {
+        const analysisId = await analysisService.startAnalysis(req);
+        const pollInterval = 2000;
+        const maxWaitMs = 120000;
+        const startTs = Date.now();
 
-      const newAnalysis: Analysis = {
-        id: response.id,
-        query: response.query,
-        timestamp: response.timestamp,
-        type: response.type as 'Research' | 'Community',
-        feedUrl: response.feedUrl,
-        topics: response.topics.map((t) => ({
-          id: t.id,
-          title: t.title,
-          description: t.description,
-          articleCount: t.articleCount,
-          relevance: t.relevance,
-          articles: t.articles,
-        })),
-      };
+        const poll = async () => {
+          try {
+            const details = await analysisService.getAnalysis(analysisId);
+            if ((details.topics as any)?.length > 0) {
+              const historyData = await analysisService.getAnalyses(20);
+              setAnalyses(historyData);
+              resolve();
+              return;
+            }
+          } catch (err) {
+            console.error('Polling failed', err);
+          }
+          if (Date.now() - startTs < maxWaitMs) {
+            setTimeout(poll, pollInterval);
+          } else {
+            resolve();
+          }
+        };
 
-      setAnalyses([newAnalysis, ...analyses]);
-    } catch (err) {
-      console.error("Analysis failed", err);
-      alert("Failed to analyze query. Please try again.");
-    }
+        poll();
+      } catch (err) {
+        console.error('Analysis failed', err);
+        alert('Failed to start analysis. Please try again.');
+        resolve();
+      }
+    });
   };
 
   // Load analysis history from database on component mount
@@ -66,25 +52,8 @@ function App() {
     const loadAnalysisHistory = async () => {
       try {
         setIsLoadingHistory(true);
-        const historyData = await getAnalysisHistory();
-        
-        const analysisItems: Analysis[] = historyData.map((analysis) => ({
-          id: analysis.id,
-          query: analysis.query,
-          timestamp: analysis.timestamp,
-          type: analysis.type as 'Research' | 'Community',
-          feedUrl: analysis.feedUrl,
-          topics: analysis.topics.map((t) => ({
-            id: t.id,
-            title: t.title,
-            description: t.description,
-            articleCount: t.articleCount,
-            relevance: t.relevance,
-            articles: t.articles,
-          })),
-        }));
-        
-        setAnalyses(analysisItems);
+        const historyData = await analysisService.getAnalyses(20);
+        setAnalyses(historyData);
       } catch (error) {
         console.error('Failed to load analysis history:', error);
         // Don't show error to user, just log it - app can still function
@@ -98,7 +67,7 @@ function App() {
 
   const handleDeleteAnalysis = async (id: string) => {
     try {
-      await deleteAnalysis(id);
+      await analysisService.deleteAnalysis(id);
       // Remove from local state after successful deletion
       setAnalyses(analyses.filter(a => a.id !== id));
     } catch (error) {
@@ -122,21 +91,21 @@ function App() {
           </AspectRatio>
         </div>
       </div>
-      
+
       <div className="relative z-10">
         <Header />
-        
+
         <main className="container mx-auto py-8 px-4 max-w-4xl">
           <div className="space-y-8">
             <StartExploringForm onAnalyze={handleAnalyze} />
-            
+
             <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 border border-black/10">
               <h2 className="text-xl font-semibold mb-4">Analysis History</h2>
               {isLoadingHistory ? (
                 <p className="text-muted-foreground text-center py-8">Loading analysis history...</p>
               ) : (
-                <AnalysisHistory 
-                  analyses={analyses} 
+                <AnalysisHistory
+                  analyses={analyses}
                   onDeleteAnalysis={handleDeleteAnalysis}
                   darkMode={false}
                 />
@@ -149,4 +118,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

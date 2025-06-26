@@ -8,9 +8,15 @@ WORKDIR /app
 # Install uv for fast package management
 RUN pip install uv
 
+# Install dependencies
 COPY requirements.txt ./
 RUN uv pip install --system --no-cache -r requirements.txt
 
+# Copy and install the generated FastAPI models
+COPY generated ./generated
+RUN cd generated && uv pip install --system --no-cache . && cd ..
+
+# Copy source code
 COPY src ./src
 
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8100"] 
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8100"]

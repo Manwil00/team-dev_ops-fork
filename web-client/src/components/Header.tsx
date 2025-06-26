@@ -6,9 +6,9 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between gap-10">
           <div className="flex-shrink-0">
-            <img 
-              src="/logo.svg" 
-              alt="NicheExplorer Logo" 
+            <img
+              src="/logo.svg"
+              alt="NicheExplorer Logo"
               className="h-10 w-auto transition-transform duration-300"
             />
           </div>

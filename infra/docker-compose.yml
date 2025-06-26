@@ -2,8 +2,8 @@ services:
   # Client (React + Vite)
   client:
     build:
-      context: ../web-client
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: web-client/Dockerfile
     ports:
       - "80:80"
     networks:
@@ -15,8 +15,8 @@ services:
   # Spring Boot API server
   api-server:
     build:
-      context: ../services/spring-api
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: services/spring-api/Dockerfile
     ports:
       - "8080:8080"
     networks:
@@ -29,6 +29,7 @@ services:
     restart: unless-stopped
     environment:
       - GENAI_BASE_URL=http://genai:8000
+      - FETCHER_BASE_URL=http://article-fetcher:8200
       - TOPIC_BASE_URL=http://topic-discovery:8100
 
   # GenAI service (FastAPI + Gemini)
@@ -36,6 +37,7 @@ services:
     build:
       context: ../services/py-genai
       dockerfile: Dockerfile
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "60"]
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY?err}
     ports:
@@ -66,10 +68,11 @@ services:
     build:
       context: ../services/py-topics
       dockerfile: Dockerfile
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8100", "--timeout-keep-alive", "60"]
     depends_on:
       - genai
     ports:
-      - "8003:8100"
+      - "8100:8100"
     networks:
       - niche-explorer-network
     restart: unless-stopped
@@ -79,6 +82,7 @@ services:
     build:
       context: ../services/py-fetcher
       dockerfile: Dockerfile
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8200", "--timeout-keep-alive", "60"]
     ports:
       - "8200:8200"
     networks:
@@ -91,4 +95,4 @@ networks:
 
 volumes:
   pgdata:
-    driver: local 
+    driver: local

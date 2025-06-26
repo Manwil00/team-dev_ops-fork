@@ -18,6 +18,10 @@ COPY requirements.txt ./
 # This replaces the slower `pip install`
 RUN uv pip install --system --no-cache -r requirements.txt
 
+# Copy and install the generated FastAPI models
+COPY generated ./generated
+RUN cd generated && uv pip install --system --no-cache . && cd ..
+
 # Copy the application source code
 COPY src/ ./src
 

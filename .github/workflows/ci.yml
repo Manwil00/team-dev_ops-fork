@@ -43,4 +43,4 @@ jobs:
             spring-api) ./gradlew test ;;
             py-genai|py-topics|py-fetcher) pip install -r requirements.txt && pytest || true ;;
             web-client) npm ci && npm run test -- --watchAll=false || true ;;
-          esac 
+          esac

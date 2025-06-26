@@ -22,4 +22,4 @@ uvicorn src.main:app --reload --port 8200
 
 The Dockerfile is already configured; the service will start on port 8200 in
 the compose network. Currently returns a stub response so that downstream
-services can be developed in parallel. 
+services can be developed in parallel.

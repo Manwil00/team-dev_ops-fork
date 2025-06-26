@@ -3,27 +3,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import TopicResult from './TopicResult';
-
-interface Article {
-  id: string;
-  title: string;
-  link: string;
-  snippet: string;
-}
-
-interface Topic {
-  id: string;
-  title: string;
-  description: string;
-  articleCount: number;
-  relevance: number;
-  articles?: Article[];
-}
+import { Topic } from '../services/analysis';
 
 interface AnalysisItemProps {
   id: string;
   query: string;
-  timestamp: string;
+  timestamp: string | undefined;
   type: 'Research' | 'Community';
   topics: Topic[];
   feedUrl?: string;  // Add feedUrl to show the actual query used
@@ -44,7 +29,8 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
   const [showTopics, setShowTopics] = useState(false);
   const [showQueryDetails, setShowQueryDetails] = useState(false);
 
-  const formatDate = (isoString: string) => {
+  const formatDate = (isoString?: string) => {
+    if (!isoString) return 'Unknown';
     const date = new Date(isoString);
     return date.toLocaleString('en-US', {
       year: 'numeric',
@@ -55,14 +41,14 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
     });
   };
 
-  const totalArticles = topics.reduce((sum, topic) => sum + topic.articleCount, 0);
+  const totalArticles = topics.reduce((sum, topic) => sum + topic.article_count, 0);
 
   // Parse the query type and details
   const getQueryInfo = () => {
     if (!feedUrl) {
       return null;
     }
-    
+
     // Check if it's a Reddit URL
     if (feedUrl.includes('reddit.com')) {
       const subreddit = feedUrl.match(/\/r\/([^\/\.]+)/)?.[1];
@@ -72,7 +58,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
         queryType: 'community'
       };
     }
-    
+
     // Simple ArXiv category first (to avoid confusion with advanced queries)
     if (feedUrl.match(/^cat:[a-z]+\.[A-Z]{2,}$/) || feedUrl.match(/^[a-z]+\.[A-Z]{2,}$/)) {
       const category = feedUrl.startsWith('cat:') ? feedUrl.replace('cat:', '') : feedUrl;
@@ -83,7 +69,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
         category: category
       };
     }
-    
+
     // Check if it's an ArXiv advanced query (more complex patterns)
     if (feedUrl.includes('all:') || feedUrl.includes('+AND+') || (feedUrl.includes('cat:') && (feedUrl.includes('+') || feedUrl.includes(' ')))) {
       return {
@@ -94,9 +80,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
         searchTerms: feedUrl.match(/all:"([^"]+)"/)?.[1]
       };
     }
-    
 
-    
     return {
       type: 'Unknown',
       details: feedUrl,
@@ -108,8 +92,8 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
 
   return (
     <div className={`border rounded-lg p-4 mb-4 ${
-      darkMode 
-        ? 'border-white/10 bg-black/20' 
+      darkMode
+        ? 'border-white/10 bg-black/20'
         : 'border-black/10 bg-white'
     }`}>
       <div className="flex justify-between items-start mb-3">
@@ -123,8 +107,8 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
             <span className={darkMode ? 'text-white/60' : 'text-muted-foreground'}>
               {formatDate(timestamp)}
             </span>
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className={`${
                 darkMode ? 'border-blue-400/30 text-blue-400' : 'border-blue-600/20 text-blue-600'
               } text-xs`}
@@ -138,8 +122,8 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
           size="sm"
           onClick={() => onDelete(id)}
           className={`p-2 ${
-            darkMode 
-              ? 'text-red-400 hover:text-red-300 hover:bg-red-400/10' 
+            darkMode
+              ? 'text-red-400 hover:text-red-300 hover:bg-red-400/10'
               : 'text-red-600 hover:text-red-700 hover:bg-red-50'
           }`}
         >
@@ -153,10 +137,10 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
             {topics.length} topics • {totalArticles} articles
           </span>
           {queryInfo && (
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className={`${
-                queryInfo.queryType === 'advanced' 
+                queryInfo.queryType === 'advanced'
                   ? (darkMode ? 'border-purple-400/30 text-purple-400' : 'border-purple-600/20 text-purple-600')
                   : queryInfo.queryType === 'simple'
                   ? (darkMode ? 'border-blue-400/30 text-blue-400' : 'border-blue-600/20 text-blue-600')
@@ -173,8 +157,8 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
             size="sm"
             onClick={() => setShowTopics(!showTopics)}
             className={`text-xs ${
-              darkMode 
-                ? 'text-white/80 hover:text-white' 
+              darkMode
+                ? 'text-white/80 hover:text-white'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -187,8 +171,8 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
               size="sm"
               onClick={() => setShowQueryDetails(!showQueryDetails)}
               className={`text-xs ${
-                darkMode 
-                  ? 'text-white/80 hover:text-white' 
+                darkMode
+                  ? 'text-white/80 hover:text-white'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -206,7 +190,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
           <h4 className={`font-medium text-sm mb-3 ${darkMode ? 'text-white' : 'text-foreground'}`}>
             Search Query Details
           </h4>
-          
+
           <div className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -217,7 +201,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
                   {queryInfo.type}
                 </p>
               </div>
-              
+
               {queryInfo.category && (
                 <div>
                   <span className={`text-xs font-medium ${darkMode ? 'text-white/80' : 'text-muted-foreground'}`}>
@@ -254,7 +238,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
 
             {queryInfo.queryType === 'advanced' && (
               <div className={`text-xs ${darkMode ? 'text-white/60' : 'text-muted-foreground'}`}>
-                💡 This advanced query searches for specific terms within the selected ArXiv category, 
+                💡 This advanced query searches for specific terms within the selected ArXiv category,
                 providing more targeted results than a simple category search.
               </div>
             )}
@@ -268,6 +252,7 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
             <TopicResult
               key={topic.id}
               {...topic}
+              articleCount={topic.article_count}
               rank={index + 1}
               darkMode={darkMode}
             />
@@ -278,4 +263,4 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
   );
 };
 
-export default AnalysisItem; 
+export default AnalysisItem;

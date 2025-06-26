@@ -18,4 +18,4 @@ public class GenAiProperties {
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
     }
-} 
+}
