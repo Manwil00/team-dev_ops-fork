@@ -1,5 +1,16 @@
+import os
+
 from fastapi import FastAPI
 from .routers import classification, embedding, arxiv
+
+# Check if the key exists. If not, raise an error to stop the app.
+if not os.getenv("CHAIR_API_KEY"):
+    raise ValueError("FATAL ERROR: The CHAIR_API_KEY environment variable is not set.")
+
+# Check if the key exists. If not, raise an error to stop the app.
+if not os.getenv("GOOGLE_API_KEY"):
+    raise ValueError("FATAL ERROR: The GOOGLE_API_KEY environment variable is not set.")
+
 
 # Initialize FastAPI app with metadata matching OpenAPI spec
 app = FastAPI(

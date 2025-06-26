@@ -51,7 +51,7 @@ public class AnalysisService {
             jdbcTemplate.update("INSERT INTO analysis (id, query, type, feed_url, total_articles_processed, created_at) VALUES (?, ?, ?, ?, ?, ?)",
                     analysisId,
                     query,
-                    "pending",          // temporary type
+                    "research",         // default temporary type avoids enum mismatch
                     "pending",          // temporary feed_url – will be updated
                     0,
                     Timestamp.from(Instant.now()));
@@ -216,9 +216,7 @@ public class AnalysisService {
             response.setQuery(rs.getString("query"));
             // Accept case-insensitive enum values (DB may contain legacy capitalized entries)
             String typeValue = rs.getString("type");
-            if (typeValue != null) {
-                response.setType(AnalysisResponse.TypeEnum.fromValue(typeValue.toLowerCase()));
-            }
+            response.setType(AnalysisResponse.TypeEnum.fromValue(typeValue.toLowerCase()));
             response.setFeedUrl(URI.create(rs.getString("feed_url")));
             response.setTotalArticlesProcessed(rs.getInt("total_articles_processed"));
             response.setCreatedAt(rs.getTimestamp("created_at").toInstant().atOffset(ZoneOffset.UTC));

@@ -45,6 +45,10 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Setup Gradle
+        if: matrix.service.name == 'spring-api'
+        uses: gradle/actions/setup-gradle@v3
+
       - name: Cache Maven / npm / pip
         uses: actions/cache@v4
         with:
