@@ -58,16 +58,11 @@ jobs:
             ~/.npm
           key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
 
-      - name: Build & test Spring API
-        if: matrix.service.name == 'spring-api'
-        working-directory: ${{ matrix.service.path }}
-        run: ./gradlew test --no-daemon
-
       - name: Build & test
-        if: matrix.service.name != 'spring-api'
         working-directory: ${{ matrix.service.path }}
         run: |
           case ${{ matrix.service.name }} in
+            spring-api) chmod +x gradlew && ./gradlew test ;;
             py-genai|py-topics|py-fetcher) pip install -r requirements.txt && pytest || true ;;
             web-client) npm ci && npm run test -- --watchAll=false || true ;;
           esac
