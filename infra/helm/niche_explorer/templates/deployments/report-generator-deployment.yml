@@ -1,0 +1,22 @@
+# Template taken from: https://github.com/Mtze/kubernetes-templates/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.server.report_generator.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.server.report_generator.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.server.report_generator.name }}
+    spec:
+      containers:
+        - name: {{ .Values.server.report_generator.name }}
+          image: "{{.Values.base_imagedomain}}{{ .Values.server.report_generator.image_name }}:latest"
+          imagePullPolicy: {{ .Values.server.report_generator.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.server.report_generator.port }}
+              name: {{ .Values.server.report_generator.name }}-api

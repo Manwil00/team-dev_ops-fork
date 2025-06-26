@@ -1,0 +1,22 @@
+# Template taken from: https://github.com/Mtze/kubernetes-templates/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.server.monitoring.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.server.monitoring.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.server.monitoring.name }}
+    spec:
+      containers:
+        - name: {{ .Values.server.monitoring.name }}
+          image: "{{.Values.base_imagedomain}}{{ .Values.server.monitoring.image_name }}:latest"
+          imagePullPolicy: {{ .Values.server.monitoring.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.server.monitoring.port }}
+              name: {{ .Values.server.monitoring.name }}-api

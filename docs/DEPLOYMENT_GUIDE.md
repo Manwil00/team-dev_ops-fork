@@ -12,12 +12,12 @@ Frontend (React) ←→ API Server (Java/Spring) ←→ GenAI Service (Python/ML
 ```
 
 ### **Key Features Implemented**
-✅ **Semantic Trend Analysis** - AI-powered topic discovery from research papers and community discussions  
-✅ **Vector Embeddings** - 768-dimensional embeddings stored in PostgreSQL with pgvector  
-✅ **Interactive UI** - Clean, modern interface with animated progress bars and article expansion  
-✅ **Persistent History** - All analyses stored and retrievable from database  
-✅ **Duplicate Prevention** - SHA-256 content hashing prevents duplicate article storage  
-✅ **Auto Source Detection** - Intelligent classification of queries as research vs community-focused  
+✅ **Semantic Trend Analysis** - AI-powered topic discovery from research papers and community discussions
+✅ **Vector Embeddings** - 768-dimensional embeddings stored in PostgreSQL with pgvector
+✅ **Interactive UI** - Clean, modern interface with animated progress bars and article expansion
+✅ **Persistent History** - All analyses stored and retrievable from database
+✅ **Duplicate Prevention** - SHA-256 content hashing prevents duplicate article storage
+✅ **Auto Source Detection** - Intelligent classification of queries as research vs community-focused
 
 ### **Recent Optimizations**
 - Removed experimental topic visualization to focus on core functionality
@@ -126,18 +126,18 @@ if (request.isAutoDetect()) {
 def extract_trending_topics(feed_url, max_articles, min_frequency):
     # 1. Fetch and preprocess articles from RSS
     articles = fetch_and_process_feed(feed_url, max_articles)
-    
+
     # 2. Group articles by semantic keywords
     topics = _simple_keyword_grouping(articles)
-    
+
     # 3. Calculate relevance scores
     for topic in topics:
         topic['relevance'] = _calculate_relevance_score(topic['articles'])
-    
+
     # 4. Generate vector embeddings
     for article in all_articles:
         article['embedding'] = generate_embedding(article['content'])
-    
+
     return topics
 ```
 
@@ -369,4 +369,4 @@ The NicheExplorer system is now streamlined and production-ready with:
 
 The system successfully processes research queries, extracts semantic trends, generates vector embeddings, and provides an intuitive interface for exploring results. All experimental features have been removed, leaving a focused, reliable application ready for production deployment.
 
-**Next Steps**: Commit the current state and deploy to your target environment using the instructions above. 
+**Next Steps**: Commit the current state and deploy to your target environment using the instructions above.

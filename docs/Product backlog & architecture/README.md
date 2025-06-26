@@ -25,8 +25,8 @@ Prepare a simple backlog in a Markdown table or GitHub Project. Each item should
 ### Core Idea:
 1.  **Prompt:** Input your niche query (e.g., "Show fast‑growing trends in CV for 3D registration").
 2.  **App Targets Sources:**
-    Detects if query is 
-    *   "research" (-> arXiv `cs.CV`) [https://rss.arxiv.org/rss/cs.CV]  
+    Detects if query is
+    *   "research" (-> arXiv `cs.CV`) [https://rss.arxiv.org/rss/cs.CV]
     *   "community" (-> Reddit `r/computervision`) [https://www.reddit.com/r/computervision.rss].
     Targets relevant RSS feeds based on this.
 3.  **App Skims Latest :** Fetches newest N articles from targeted feeds.

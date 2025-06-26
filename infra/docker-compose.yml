@@ -1,0 +1,98 @@
+services:
+  # Client (React + Vite)
+  client:
+    build:
+      context: ../
+      dockerfile: web-client/Dockerfile
+    ports:
+      - "80:80"
+    networks:
+      - niche-explorer-network
+    depends_on:
+      - api-server
+    restart: unless-stopped
+
+  # Spring Boot API server
+  api-server:
+    build:
+      context: ../
+      dockerfile: services/spring-api/Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - niche-explorer-network
+    depends_on:
+      - genai
+      - topic-discovery
+      - article-fetcher
+      - db
+    restart: unless-stopped
+    environment:
+      - GENAI_BASE_URL=http://genai:8000
+      - FETCHER_BASE_URL=http://article-fetcher:8200
+      - TOPIC_BASE_URL=http://topic-discovery:8100
+
+  # GenAI service (FastAPI + Gemini)
+  genai:
+    build:
+      context: ../services/py-genai
+      dockerfile: Dockerfile
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--timeout-keep-alive", "60"]
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY?err}
+    ports:
+      - "8000:8000"
+    networks:
+      - niche-explorer-network
+    restart: unless-stopped
+    env_file:
+      - ../.env
+
+  # Postgres with pgvector extension
+  db:
+    image: ankane/pgvector:latest
+    environment:
+      POSTGRES_USER: niche
+      POSTGRES_PASSWORD: nichepw
+      POSTGRES_DB: niche
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - niche-explorer-network
+    restart: unless-stopped
+
+  # Topic Discovery microservice
+  topic-discovery:
+    build:
+      context: ../services/py-topics
+      dockerfile: Dockerfile
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8100", "--timeout-keep-alive", "60"]
+    depends_on:
+      - genai
+    ports:
+      - "8100:8100"
+    networks:
+      - niche-explorer-network
+    restart: unless-stopped
+
+  # Article Fetcher microservice
+  article-fetcher:
+    build:
+      context: ../services/py-fetcher
+      dockerfile: Dockerfile
+    command: ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8200", "--timeout-keep-alive", "60"]
+    ports:
+      - "8200:8200"
+    networks:
+      - niche-explorer-network
+    restart: unless-stopped
+
+networks:
+  niche-explorer-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local

@@ -1,0 +1,11 @@
+# Template taken from: https://github.com/Mtze/kubernetes-templates/
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.server.report_generator.name }}-service
+spec:
+  selector:
+    app: {{ .Values.server.report_generator.name }}
+  ports:
+    - port: {{ .Values.server.report_generator.port }}
+      targetPort: {{ .Values.server.report_generator.name }}-api
