@@ -23,6 +23,9 @@ jobs:
       - name: Lint OpenAPI
         run: npx @redocly/cli lint api/openapi.yaml
 
+      - name: Install OpenAPI Generator CLI
+        run: npm install -g @openapitools/openapi-generator-cli@latest
+
       - name: Generate code
         run: bash ./api/scripts/gen-all.sh
         shell: bash
