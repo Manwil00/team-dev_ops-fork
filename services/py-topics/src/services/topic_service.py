@@ -6,10 +6,10 @@ import hdbscan
 import umap
 import re
 from collections import Counter
-from openapi_server.models.embedding_request import EmbeddingRequest
-from openapi_server.models.embedding_response import EmbeddingResponse
-from openapi_server.models.topic_discovery_response import TopicDiscoveryResponse
-from openapi_server.models.topic import Topic
+from niche_explorer_models.models.embedding_request import EmbeddingRequest
+from niche_explorer_models.models.embedding_response import EmbeddingResponse
+from niche_explorer_models.models.topic_discovery_response import TopicDiscoveryResponse
+from niche_explorer_models.models.topic import Topic
 import logging
 import os
 import httpx

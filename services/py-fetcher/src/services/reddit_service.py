@@ -1,7 +1,7 @@
 import feedparser
 from typing import List
 from datetime import datetime
-from openapi_server.models.article import Article
+from niche_explorer_models.models.article import Article
 
 
 class RedditFetcher:

@@ -7,7 +7,7 @@ import requests
 import feedparser
 from datetime import datetime, timezone
 from typing import List
-from openapi_server.models.article import Article
+from niche_explorer_models.models.article import Article
 from urllib.parse import quote
 
 

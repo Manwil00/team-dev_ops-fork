@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
-from openapi_server.models.article_fetch_request import ArticleFetchRequest
-from openapi_server.models.article_fetch_response import ArticleFetchResponse
+from niche_explorer_models.models.article_fetch_request import ArticleFetchRequest
+from niche_explorer_models.models.article_fetch_response import ArticleFetchResponse
+
 import logging
 from .services.arxiv_service import arxiv_fetcher
 from .services.reddit_service import reddit_fetcher

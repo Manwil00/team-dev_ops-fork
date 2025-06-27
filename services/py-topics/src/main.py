@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
-from openapi_server.models.topic_discovery_request import TopicDiscoveryRequest
-from openapi_server.models.topic_discovery_response import TopicDiscoveryResponse
-from openapi_server.models.article import Article
+from niche_explorer_models.models.topic_discovery_request import TopicDiscoveryRequest
+from niche_explorer_models.models.topic_discovery_response import TopicDiscoveryResponse
+from niche_explorer_models.models.article import Article
 from .services.topic_service import topic_service
 import logging
 import os
