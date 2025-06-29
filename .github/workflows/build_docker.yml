@@ -22,8 +22,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Node.js dependencies
-        run: npm ci
+      - name: Install openapi-generator-cli
+        run: npm install -g @openapitools/openapi-generator-cli
 
       - name: Run OpenAPI Code Generator
         run: bash ./api/scripts/gen-all.sh
@@ -87,8 +87,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Node.js dependencies
-        run: npm ci
+      - name: Install openapi-generator-cli
+        run: npm install -g @openapitools/openapi-generator-cli
 
       - name: Run OpenAPI Code Generator
         run: bash ./api/scripts/gen-all.sh
