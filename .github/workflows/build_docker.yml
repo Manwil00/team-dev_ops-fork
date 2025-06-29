@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feat/k8shelm_deployment # Dummy deployment for testing the new workflow
   workflow_dispatch:
 
 jobs:
@@ -23,13 +24,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Make gradlew executable
-        run: chmod +x server/gradlew
+        run: chmod +x services/spring-api/gradlew
 
       - name: Generate Gradle Wrapper
-        run: cd server && gradle wrapper
+        working-directory: ./services/spring-api
+        run: gradle wrapper
 
       - name: Build with Gradle
-        run: cd server && ./gradlew build
+        working-directory: ./services/spring-api
+        run: ./gradlew build
 
   build:
     name: Build Docker Images
@@ -39,25 +42,24 @@ jobs:
       matrix:
         include:
           - service: client
-            context: ./client
-            dockerfile: ./client/Dockerfile
+            context: .
+            dockerfile: ./web-client/Dockerfile
 
-          - service: monitoring
-            context: ./server
-            dockerfile: ./server/src/monitoring/Dockerfile
-
-          - service: report-generator
-            context: ./server
-            dockerfile: ./server/src/report-generator/Dockerfile
-
-          - service: rss-fetcher
-            context: ./server
-            dockerfile: ./server/src/rss-fetcher/Dockerfile
+          - service: api-server
+            context: .
+            dockerfile: ./services/spring-api/Dockerfile
 
           - service: genai
-            context: ./genai
-            dockerfile: ./genai/Dockerfile
+            context: ./services/py-genai
+            dockerfile: ./services/py-genai/Dockerfile
 
+          - service: topic-discovery
+            context: ./services/py-topics
+            dockerfile: ./services/py-topics/Dockerfile
+
+          - service: article-fetcher
+            context: ./services/py-fetcher
+            dockerfile: ./services/py-fetcher/Dockerfile
 
     steps:
       - name: Checkout
@@ -100,3 +102,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          secrets: |
+            CHAIR_API_KEY=${{ secrets.CHAIR_API_KEY }}
+            GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}

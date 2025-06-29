@@ -1,6 +1,14 @@
 # Use a modern, slim Python base image
 FROM python:3.11-slim
 
+# ACCEPT build-time arguments for Github Actions secrets.
+ARG CHAIR_API_KEY
+ARG GOOGLE_API_KEY
+
+# 2. Update environment variables with the provided secrets
+ENV CHAIR_API_KEY=${CHAIR_API_KEY}
+ENV GOOGLE_API_KEY=${GOOGLE_API_KEY}
+
 # Set environment variables for a clean, non-interactive environment
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
