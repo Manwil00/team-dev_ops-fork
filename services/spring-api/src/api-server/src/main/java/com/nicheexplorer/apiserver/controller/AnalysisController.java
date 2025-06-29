@@ -47,7 +47,7 @@ public class AnalysisController {
      * source classification, article fetching, embedding generation,
      * topic discovery, and result persistence.</p>
      *
-     * <h2>Request Parameters:</h2>
+     * <h4>Request Parameters:</h4>
      * <ul>
      *   <li><code>query</code> - The research question (required)</li>
      *   <li><code>source</code> - Source override (optional: "arxiv", "reddit", etc.)</li>
