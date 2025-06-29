@@ -10,7 +10,6 @@ services:
       - niche-explorer-network
     depends_on:
       - api-server
-    restart: unless-stopped
 
   # Spring Boot API server
   api-server:
@@ -26,7 +25,6 @@ services:
       - topic-discovery
       - article-fetcher
       - db
-    restart: unless-stopped
     environment:
       - GENAI_BASE_URL=http://genai:8000
       - FETCHER_BASE_URL=http://article-fetcher:8200
@@ -42,7 +40,6 @@ services:
       - "8000:8000"
     networks:
       - niche-explorer-network
-    restart: unless-stopped
     env_file:
       - ../.env
 
@@ -59,7 +56,6 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - niche-explorer-network
-    restart: unless-stopped
 
   # Topic Discovery microservice
   topic-discovery:
@@ -73,7 +69,6 @@ services:
       - "8100:8100"
     networks:
       - niche-explorer-network
-    restart: unless-stopped
 
   # Article Fetcher microservice
   article-fetcher:
@@ -85,7 +80,6 @@ services:
       - "8200:8200"
     networks:
       - niche-explorer-network
-    restart: unless-stopped
 
 networks:
   niche-explorer-network:
