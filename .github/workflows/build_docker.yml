@@ -15,6 +15,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Generate the openapi client code before building the Docker images
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Run OpenAPI Code Generator
+        run: bash ./api/scripts/gen-all.sh
+
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -66,6 +79,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+        
+      # Generate the openapi client code before building the Docker images
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Run OpenAPI Code Generator
+        run: bash ./api/scripts/gen-all.sh
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
