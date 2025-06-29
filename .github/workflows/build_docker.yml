@@ -20,7 +20,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: false
 
       - name: Install openapi-generator-cli
         run: npm install -g @openapitools/openapi-generator-cli
@@ -85,7 +84,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: false
 
       - name: Install openapi-generator-cli
         run: npm install -g @openapitools/openapi-generator-cli
