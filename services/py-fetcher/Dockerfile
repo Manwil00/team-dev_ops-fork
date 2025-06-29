@@ -5,13 +5,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install minimal deps
+# Install uv for fast package management
+RUN pip install uv
+
+# Install dependencies
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
 # Copy and install the generated FastAPI models
 COPY generated ./generated
-RUN cd generated && pip install --no-cache-dir . && cd ..
+RUN cd generated && uv pip install --system --no-cache . && cd ..
 
 # Copy source code
 COPY src ./src
