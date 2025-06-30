@@ -1,0 +1,29 @@
+# Template taken from: https://github.com/Mtze/kubernetes-templates/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.service.api.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.service.api.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.service.api.name }}
+    spec:
+      containers:
+        - name: {{ .Values.service.api.name }}
+          image: "{{.Values.base_imagedomain}}{{.Values.service.api.image_name }}:latest"
+          imagePullPolicy: {{ .Values.service.api.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.api.port }}
+              name: {{ .Values.service.api.name }}
+          env:
+            - name: GENAI_BASE_URL
+              value: {{ .Values.service.api.env.GENAI_BASE_URL | quote }}
+            - name: FETCHER_BASE_URL
+              value: {{ .Values.service.api.env.FETCHER_BASE_URL | quote }}
+            - name: TOPIC_BASE_URL
+              value: {{ .Values.service.api.env.TOPIC_BASE_URL | quote }}

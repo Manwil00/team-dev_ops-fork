@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.genai.name }}-service
+  name: {{ .Values.service.genai.name }}
 spec:
   selector:
-    app: {{ .Values.genai.name }}
+    app: {{ .Values.service.genai.name }}
   ports:
-    - port: {{ .Values.genai.port }}
-      targetPort: {{ .Values.genai.name }}-api
+    - port: {{ .Values.service.genai.port }}
+      targetPort: {{ .Values.service.genai.name }}

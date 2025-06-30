@@ -1,0 +1,22 @@
+# Template taken from: https://github.com/Mtze/kubernetes-templates/
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.ui.name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.ui.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.ui.name }}
+    spec:
+      containers:
+        - name: {{ .Values.ui.name }}
+          image: "{{.Values.base_imagedomain}}{{.Values.ui.image_name }}:latest"
+          imagePullPolicy: {{ .Values.ui.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.ui.port }}
+              name: {{ .Values.ui.name }}

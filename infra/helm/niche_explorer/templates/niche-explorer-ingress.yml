@@ -14,38 +14,14 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: {{ .Values.client.ui.name }}
+            name: {{ .Values.ui.name }}
             port:
-              number: {{ .Values.client.ui.port }}
+              number: {{ .Values.ui.port }}
 
-      - path: "/{{ .Values.server.monitoring.name }}"
+      - path: /api
         pathType: Prefix
         backend:
           service:
-            name: {{ .Values.server.monitoring.name }}
+            name: {{ .Values.service.api.name }}
             port:
-              number: {{ .Values.server.monitoring.port }}
-
-      - path: "/{{ .Values.server.report_generator.name }}"
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ .Values.server.report_generator.name }}
-            port:
-              number: {{ .Values.server.report_generator.port }}
-
-      - path: "/{{ .Values.server.rss_fetcher.name }}"
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ .Values.server.rss_fetcher.name }}
-            port:
-              number: {{ .Values.server.rss_fetcher.port }}
-
-      - path: "/{{ .Values.genai.name }}"
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ .Values.genai.name }}
-            port:
-              number: {{ .Values.genai.port }}
+              number: {{ .Values.service.api.port }}
