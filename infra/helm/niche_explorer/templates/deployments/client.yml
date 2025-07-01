@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.ui.name }}
-          image: "{{.Values.base_imagedomain}}{{.Values.ui.image_name }}:latest"
+          image: "{{.Values.base_imagedomain}}{{.Values.ui.image_name }}:{{ .Values.release }}"
           imagePullPolicy: {{ .Values.ui.pullPolicy }}
           ports:
             - containerPort: {{ .Values.ui.port }}

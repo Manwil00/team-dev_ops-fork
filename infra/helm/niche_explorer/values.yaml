@@ -2,6 +2,7 @@
 
 replicaCount: 1
 base_imagedomain: "ghcr.io/aet-devops25/team-dev_ops/"
+release: "latest" # Update to branch name when not operating on main branch
 
 # Client service
 

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.service.genai.name }}
-          image: "{{.Values.base_imagedomain}}{{ .Values.service.genai.image_name }}:latest"
+          image: "{{.Values.base_imagedomain}}{{ .Values.service.genai.image_name }}:{{ .Values.release }}"
           imagePullPolicy: {{ .Values.service.genai.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.genai.port }}

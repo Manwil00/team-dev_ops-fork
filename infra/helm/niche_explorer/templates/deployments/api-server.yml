@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.service.api.name }}
-          image: "{{.Values.base_imagedomain}}{{.Values.service.api.image_name }}:latest"
+          image: "{{.Values.base_imagedomain}}{{.Values.service.api.image_name }}:{{ .Values.release }}"
           imagePullPolicy: {{ .Values.service.api.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.api.port }}

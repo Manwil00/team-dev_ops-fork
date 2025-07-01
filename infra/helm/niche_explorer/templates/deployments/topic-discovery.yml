@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.service.topic_discovery.name }}
-          image: "{{.Values.base_imagedomain}}{{ .Values.service.topic_discovery.image_name }}:latest"
+          image: "{{.Values.base_imagedomain}}{{ .Values.service.topic_discovery.image_name }}:{{ .Values.release }}"
           imagePullPolicy: {{ .Values.service.topic_discovery.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.topic_discovery.port }}

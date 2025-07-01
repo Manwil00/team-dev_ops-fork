@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: {{ .Values.service.article_fetcher.name }}
-          image: "{{.Values.base_imagedomain}}{{ .Values.service.article_fetcher.image_name }}:latest"
+          image: "{{.Values.base_imagedomain}}{{ .Values.service.article_fetcher.image_name }}:{{ .Values.release }}"
           imagePullPolicy: {{ .Values.service.article_fetcher.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.article_fetcher.port }}
