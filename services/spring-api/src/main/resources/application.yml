@@ -1,3 +1,12 @@
+genai:
+  base-url: http://genai:8000
+
+topic:
+  base-url: http://topic-discovery:8100
+
+fetcher:
+  base-url: http://article-fetcher:8200
+
 spring:
   datasource:
     url: jdbc:postgresql://db:5432/${POSTGRES_DB}
@@ -6,7 +15,7 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: none
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -16,4 +25,22 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins: "*"
-            allowedMethods: "*" 
+            allowedMethods: "*"
+      routes:
+        - id: genai-service
+          uri: http://genai:8000
+          predicates:
+            - Path=/api/v1/classify, /api/v1/embeddings, /api/v1/query/**
+        - id: article-fetcher-service
+          uri: http://article-fetcher:8200
+          predicates:
+            - Path=/api/v1/articles, /api/v1/sources/**
+        - id: topic-discovery-service
+          uri: http://topic-discovery:8100
+          predicates:
+            - Path=/api/v1/topics/**
+  main:
+    web-application-type: reactive
+
+flyway:
+  baseline-on-migrate: false 
