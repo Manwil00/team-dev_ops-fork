@@ -5,15 +5,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install minimal deps
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy and install the generated FastAPI models
+COPY requirements.txt ./ 
 COPY generated ./generated
-RUN cd generated && pip install --no-cache-dir . && cd ..
 
-# Copy source code
+# 1. Install build-essential
+# 2. Install uv for fast package management
+# 3. Install Python dependencies using uv
+# 4. Install generated FastAPI models
+# 5. Clean up build-essential and apt cache
+RUN apt-get update && apt-get install -y build-essential \
+    && pip install uv \
+    && uv pip install --system --no-cache -r requirements.txt \
+    && cd generated && uv pip install --system --no-cache . && cd .. \ 
+    && apt-get purge -y --auto-remove build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY src ./src
 
 CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8200"]

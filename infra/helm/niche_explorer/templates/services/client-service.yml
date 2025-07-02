@@ -1,0 +1,11 @@
+# Template taken from: https://github.com/Mtze/kubernetes-templates/
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.ui.name }}
+spec:
+  selector:
+    app: {{ .Values.ui.name }}
+  ports:
+    - port: {{ .Values.ui.port }}
+      targetPort: {{ .Values.ui.name }}

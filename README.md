@@ -153,3 +153,11 @@ article (
 - `article_embedding_idx` - IVFFlat index for article similarity search
 
 Complete schema: `services/spring-api/src/api-server/src/main/resources/db/migration/V1__unified_database_schema.sql`
+
+
+
+**Kubernetes Deployment:**
+- Configure API keys and database credentials in .env file (using .env.example template)
+- Upload secrets to kubernetes using the command `kubectl create secret generic niche-explorer-secrets --from-env-file=./.env -n niche-explorer`
+   - If the secret name is different, also adapt it in the values.yml
+- In order to download the database files run `helm repo update` once.

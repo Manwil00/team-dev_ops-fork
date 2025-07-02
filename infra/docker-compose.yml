@@ -10,7 +10,6 @@ services:
       - niche-explorer-network
     depends_on:
       - api-server
-    restart: unless-stopped
 
   # Spring Boot API server
   api-server:
@@ -26,11 +25,12 @@ services:
       - topic-discovery
       - article-fetcher
       - db
-    restart: unless-stopped
     environment:
       - GENAI_BASE_URL=http://genai:8000
       - FETCHER_BASE_URL=http://article-fetcher:8200
       - TOPIC_BASE_URL=http://topic-discovery:8100
+    env_file:
+      - ../.env
 
   # GenAI service (FastAPI + Gemini)
   genai:
@@ -42,24 +42,20 @@ services:
       - "8000:8000"
     networks:
       - niche-explorer-network
-    restart: unless-stopped
     env_file:
       - ../.env
 
   # Postgres with pgvector extension
   db:
     image: ankane/pgvector:latest
-    environment:
-      POSTGRES_USER: niche
-      POSTGRES_PASSWORD: nichepw
-      POSTGRES_DB: niche
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
       - niche-explorer-network
-    restart: unless-stopped
+    env_file:
+      - ../.env
 
   # Topic Discovery microservice
   topic-discovery:
@@ -73,7 +69,6 @@ services:
       - "8100:8100"
     networks:
       - niche-explorer-network
-    restart: unless-stopped
 
   # Article Fetcher microservice
   article-fetcher:
@@ -85,7 +80,6 @@ services:
       - "8200:8200"
     networks:
       - niche-explorer-network
-    restart: unless-stopped
 
 networks:
   niche-explorer-network:

@@ -2,42 +2,44 @@
 
 replicaCount: 1
 base_imagedomain: "ghcr.io/aet-devops25/team-dev_ops/"
+release: "latest" # Update to branch name when not operating on main branch
 
-# Client service - UI
-client:
-  ui:
-    name: ui
-    image_name: client
-    port: 80
-    pullPolicy: Always
+# Client service
 
-# Server services
-server:
-
-  monitoring:
-    name: monitoring
-    image_name: monitoring
+ui:
+  name: client
+  image_name: client
+  port: 80
+  pullPolicy: Always
+  
+service:
+  api:
+    name: api-server
+    image_name: api-server
     port: 8080
     pullPolicy: Always
+    env:
+      GENAI_BASE_URL: "http://genai:8000"
+      FETCHER_BASE_URL: "http://article-fetcher:8200"
+      TOPIC_BASE_URL: "http://topic-discovery:8100"
 
-  report_generator:
-    name: report-gen
-    image_name: report-generator
-    port: 8081
+  genai:
+    name: genai
+    image_name: genai
+    port: 8000
     pullPolicy: Always
 
-  rss_fetcher:
-    name: rss-fetcher
-    image_name: rss-fetcher
-    port: 8082
+  topic_discovery:
+    name: topic-discovery
+    image_name: topic-discovery
+    port: 8100
     pullPolicy: Always
 
-# GenAI service
-genai:
-  name: genai
-  image_name: genai
-  port: 8083
-  pullPolicy: Always
+  article_fetcher:
+    name: article-fetcher
+    image_name: article-fetcher
+    port: 8200
+    pullPolicy: Always
 
 ingress:
   enabled: true
@@ -47,3 +49,27 @@ ingress:
   # tls: true
   # annotations:
   #   cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  
+api_secrets:
+  name: niche-explorer-secrets
+  CHAIR_API_KEY: CHAIR_API_KEY
+  GOOGLE_API_KEY: GOOGLE_API_KEY
+
+pgvector:
+  enabled: true
+
+  existingSecret: "niche-explorer-secrets"
+
+  image:
+    repository: ankane/pgvector
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+  postgresql:
+    username: "niche-user"
+    database: "niche-db"
+    password: ""
+
+  persistence:
+    size: "10Gi"
+    storageClass: "csi-rbd-sc"

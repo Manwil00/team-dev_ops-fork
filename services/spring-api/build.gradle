@@ -48,6 +48,13 @@ subprojects {
 
     if (project.name == 'api-server') {
         apply plugin: 'org.springframework.boot'
+
+        // Exclude the "generated" files of openapi-generator in api-server from the Javadoc task, as they cause warnings.
+        javadoc {
+            source = source.filter { file ->
+                !file.path.contains("generated")
+            }
+        }
     }
 }
 
@@ -57,27 +64,3 @@ repositories {
     maven { url 'https://repo.spring.io/snapshot' }
     maven { url 'https://plugins.gradle.org/m2/' }
 }
-
-/*
-// Apply the java plugin to add support for Java
-apply plugin: 'java'
-
-// In this section you declare where to find the dependencies of your project
-repositories {
-    // Use 'jcenter' for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
-    jcenter()
-}
-
-// In this section you declare the dependencies for your production and test code
-dependencies {
-    // The production code uses the SLF4J logging API at compile time
-    compile 'org.slf4j:slf4j-api:1.7.25'
-
-    // Declare the dependency for your favourite test framework you want to use in your tests.
-    // TestNG is also supported by the Gradle Test task. Just change the
-    // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
-    // 'test.useTestNG()' to your build script.
-    testCompile 'junit:junit:4.12'
-}
-*/

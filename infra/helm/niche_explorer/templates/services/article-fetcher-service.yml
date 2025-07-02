@@ -1,0 +1,11 @@
+# Template taken from: https://github.com/Mtze/kubernetes-templates/
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.article_fetcher.name }}
+spec:
+  selector:
+    app: {{ .Values.service.article_fetcher.name }}
+  ports:
+    - port: {{ .Values.service.article_fetcher.port }}
+      targetPort: {{ .Values.service.article_fetcher.name }}

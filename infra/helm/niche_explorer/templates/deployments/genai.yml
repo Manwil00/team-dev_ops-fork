@@ -2,21 +2,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.genai.name }}
+  name: {{ .Values.service.genai.name }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ .Values.genai.name }}
+      app: {{ .Values.service.genai.name }}
   template:
     metadata:
       labels:
-        app: {{ .Values.genai.name }}
+        app: {{ .Values.service.genai.name }}
     spec:
       containers:
-        - name: {{ .Values.genai.name }}
-          image: "{{.Values.base_imagedomain}}{{ .Values.genai.image_name }}:latest"
-          imagePullPolicy: {{ .Values.genai.pullPolicy }}
+        - name: {{ .Values.service.genai.name }}
+          image: "{{ .Values.base_imagedomain }}{{ .Values.service.genai.image_name }}:{{ .Values.release }}"
+          imagePullPolicy: {{ .Values.service.genai.pullPolicy }}
           ports:
-            - containerPort: {{ .Values.genai.port }}
-              name: {{ .Values.genai.name }}-api
+            - containerPort: {{ .Values.service.genai.port }}
+              name: {{ .Values.service.genai.name }}
+          env:
+            - name: CHAIR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api_secrets.name }}
+                  key: {{ .Values.api_secrets.CHAIR_API_KEY }}
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api_secrets.name }}
+                  key: {{ .Values.api_secrets.GOOGLE_API_KEY }}

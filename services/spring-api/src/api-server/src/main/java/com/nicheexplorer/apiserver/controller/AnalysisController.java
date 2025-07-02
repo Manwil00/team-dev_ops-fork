@@ -19,7 +19,7 @@ import java.util.UUID;
  * analysis workflows, managing analysis history, and performing administrative
  * operations. All endpoints use OpenAPI-generated DTOs for type safety.</p>
  *
- * <h3>Available Operations:</h3>
+ * <h2>Available Operations:</h2>
  * <ul>
  *   <li><strong>POST /api/analyses</strong> - Execute complete analysis workflow</li>
  *   <li><strong>GET /api/analyses</strong> - Retrieve paginated analysis history</li>
@@ -73,6 +73,7 @@ public class AnalysisController {
      * Each analysis includes basic metadata but not full topic/article data.</p>
      *
      * @param limit the number of results to return (default: 20)
+     * @param offset the number of results to skip (default: 0) 
      * @return list of historical analysis responses
      */
     @GetMapping("/analyses")
