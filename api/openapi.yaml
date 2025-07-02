@@ -14,21 +14,12 @@ security: []
 
 # Default servers - tools will show all when no specific server is selected
 servers:
-  - url: http://ge74tif.student.k8s.aet.cit.tum.de:8080
-    description: Spring API Gateway - Main orchestration endpoints
-  - url: http://ge74tif.student.k8s.aet.cit.tum.de:8000  
-    description: GenAI Service - AI classification and embeddings
-  - url: http://ge74tif.student.k8s.aet.cit.tum.de:8200
-    description: Article Fetcher Service - Content retrieval
-  - url: http://ge74tif.student.k8s.aet.cit.tum.de:8100
-    description: Topic Discovery Service - Clustering and analysis
+  - url: /
+    description: API Gateway - All requests are routed through the gateway.
 
 paths:
   # Spring API Gateway endpoints (ge74tif.student.k8s.aet.cit.tum.de:8080)
   /api/v1/analyses:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8080
-        description: Spring API Gateway
     post:
       tags: [Analysis]
       summary: Launch analysis job
@@ -82,9 +73,6 @@ paths:
                 required: [total, limit, offset, items]
 
   /api/v1/analyses/{id}:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8080
-        description: Spring API Gateway
     get:
       tags: [Analysis]
       summary: Poll analysis status
@@ -126,9 +114,6 @@ paths:
 
   # GenAI Service endpoints (ge74tif.student.k8s.aet.cit.tum.de:8000)
   /api/v1/classify:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8000
-        description: GenAI Service
     post:
       tags: [AI]
       summary: Classify query intent (research vs community)
@@ -150,9 +135,6 @@ paths:
                 $ref: '#/components/schemas/ClassifyResponse'
 
   /api/v1/embeddings:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8000
-        description: GenAI Service
     post:
       tags: [AI]
       summary: Generate embeddings
@@ -196,9 +178,6 @@ paths:
                 $ref: '#/components/schemas/EmbeddingResponse'
 
   /api/v1/query/build/{source}:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8000
-        description: GenAI Service
     post:
       tags: [AI]
       summary: Build source-specific query
@@ -228,9 +207,6 @@ paths:
 
   # Article Fetcher Service endpoints (ge74tif.student.k8s.aet.cit.tum.de:8200)
   /api/v1/articles:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8200
-        description: Article Fetcher Service
     post:
       tags: [Articles]
       summary: Fetch articles
@@ -251,9 +227,6 @@ paths:
                 $ref: '#/components/schemas/ArticleFetchResponse'
 
   /api/v1/sources/{source}/categories:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8200
-        description: Article Fetcher Service
     get:
       tags: [Articles]
       summary: Get source categories
@@ -281,9 +254,6 @@ paths:
 
   # Topic Discovery Service endpoints (ge74tif.student.k8s.aet.cit.tum.de:8100)
   /api/v1/topics/discover:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8100
-        description: Topic Discovery Service
     post:
       tags: [Topics]
       summary: Discover topics

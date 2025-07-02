@@ -1,20 +1,12 @@
-genai:
-  base-url: http://genai:8000
-
-topic:
-  base-url: http://topic-discovery:8100
-
-fetcher:
-  base-url: http://article-fetcher:8200
-
 spring:
   datasource:
     url: jdbc:postgresql://db:5432/${POSTGRES_DB}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -24,7 +16,4 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins: "*"
-            allowedMethods: "*"
-
-flyway:
-  baseline-on-migrate: false
+            allowedMethods: "*" 
