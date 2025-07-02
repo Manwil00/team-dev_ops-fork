@@ -15,8 +15,19 @@ spec:
     spec:
       containers:
         - name: {{ .Values.service.genai.name }}
-          image: "{{.Values.base_imagedomain}}{{ .Values.service.genai.image_name }}:{{ .Values.release }}"
+          image: "{{ .Values.base_imagedomain }}{{ .Values.service.genai.image_name }}:{{ .Values.release }}"
           imagePullPolicy: {{ .Values.service.genai.pullPolicy }}
           ports:
             - containerPort: {{ .Values.service.genai.port }}
               name: {{ .Values.service.genai.name }}
+          env:
+            - name: CHAIR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api_secrets.name }}
+                  key: {{ .Values.api_secrets.CHAIR_API_KEY }}
+            - name: GOOGLE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api_secrets.name }}
+                  key: {{ .Values.api_secrets.GOOGLE_API_KEY }}
