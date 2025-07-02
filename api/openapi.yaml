@@ -40,8 +40,18 @@ paths:
               schema:
                 type: string
               description: URL of the newly created analysis resource.
-        "400": { description: Invalid request }
-        "500": { description: Internal error }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     get:
       tags: [Analysis]
       summary: List analyses (paginated)
@@ -71,6 +81,12 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/AnalysisResponse' }
                 required: [total, limit, offset, items]
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/v1/analyses/{id}:
     get:
@@ -91,7 +107,18 @@ paths:
               schema: { $ref: '#/components/schemas/AnalysisResponse' }
         "202":
           description: Analysis still in progress
-        "404": { description: Analysis not found }
+        "404":
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
       tags: [Analysis]
       summary: Delete analysis
@@ -110,7 +137,12 @@ paths:
         "403":
           description: Forbidden
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        "404": { description: Analysis not found }
+        "404":
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   # GenAI Service endpoints (ge74tif.student.k8s.aet.cit.tum.de:8000)
   /api/v1/classify:
@@ -133,6 +165,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClassifyResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/v1/embeddings:
     post:
@@ -153,6 +197,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmbeddingResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     get:
       tags: [AI]
       summary: Retrieve cached embeddings
@@ -176,6 +232,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmbeddingResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/v1/query/build/{source}:
     post:
@@ -204,6 +272,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueryBuilderResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   # Article Fetcher Service endpoints (ge74tif.student.k8s.aet.cit.tum.de:8200)
   /api/v1/articles:
@@ -225,6 +305,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ArticleFetchResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/v1/sources/{source}/categories:
     get:
@@ -251,6 +343,12 @@ paths:
                   type: array
                   items:
                     type: string
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   # Topic Discovery Service endpoints (ge74tif.student.k8s.aet.cit.tum.de:8100)
   /api/v1/topics/discover:
@@ -272,6 +370,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TopicDiscoveryResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 components:
   schemas:
@@ -599,6 +709,10 @@ components:
       properties:
         code: { type: string }
         message: { type: string }
+        details:
+          type: object
+          additionalProperties: true
+          description: Optional structured details about the error
       required: [code, message]
 
   securitySchemes: {}

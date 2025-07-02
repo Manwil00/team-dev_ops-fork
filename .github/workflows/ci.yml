@@ -63,6 +63,6 @@ jobs:
         run: |
           case ${{ matrix.service.name }} in
             spring-api) chmod +x gradlew && ./gradlew test ;;
-            py-genai|py-topics|py-fetcher) pip install -r requirements.txt && pytest || true ;;
-            web-client) npm ci && npm run test -- --watchAll=false || true ;;
+            py-genai|py-topics|py-fetcher) pip install -r requirements.txt && pytest ;;
+            web-client) npm ci && npm run test -- --watchAll=false ;;
           esac
