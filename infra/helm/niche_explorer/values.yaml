@@ -49,25 +49,27 @@ ingress:
   # tls: true
   # annotations:
   #   cert-manager.io/cluster-issuer: "letsencrypt-prod"
-
+  
 api_secrets:
   name: niche-explorer-secrets
   CHAIR_API_KEY: CHAIR_API_KEY
   GOOGLE_API_KEY: GOOGLE_API_KEY
 
-postgresql:
-  auth:
-    existingSecret: niche-explorer-secrets
-    existingSecretUsernameKey: POSTGRES_USER
-    existingSecretPasswordKey: POSTGRES_PASSWORD
-    existingSecretDatabaseKey: POSTGRES_DB
+pgvector:
+  enabled: true
 
-  primary:
-    initdb:
-      scripts:
-        init-pgvector.sh: |
-          #!/bin/bash
-          echo "Creating pgvector extension..."
-          psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE EXTENSION IF NOT EXISTS vector;"
-    extendedConfiguration: |
-      shared_preload_libraries = 'vector'
+  existingSecret: "niche-explorer-secrets"
+
+  image:
+    repository: ankane/pgvector
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+  postgresql:
+    username: "niche-user"
+    database: "niche-db"
+    password: ""
+
+  persistence:
+    size: "10Gi"
+    storageClass: "csi-rbd-sc"
