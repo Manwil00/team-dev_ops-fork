@@ -19,8 +19,11 @@ echo "Pact file generated successfully"
 # Step 2: Run provider test to verify contract
 echo "Step 2: Running Python provider test"
 cd ../py-fetcher
-pip install -r requirements.txt
-pip install -r test_requirements.txt
+
+# Install app dependencies, test dependencies, and the generated models in one command
+pip install -r requirements.txt -r test_requirements.txt ./generated
+
+# Run the provider verification
 python -m pytest tests/test_pact_provider.py::TestPyFetcherProvider::test_against_api_server_contract -v
 
 echo "Contract tests completed successfully" 
