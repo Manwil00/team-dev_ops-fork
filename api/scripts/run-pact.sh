@@ -6,6 +6,7 @@ echo "Running Pact contract tests"
 # Step 1: Run consumer test to generate pact file
 echo "Step 1: Running Java consumer test"
 cd services/spring-api
+chmod +x gradlew
 ./gradlew test --tests "com.nicheexplorer.apiserver.pact.ArticleFetcherConsumerTest"
 
 # Verify pact file was generated
