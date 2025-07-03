@@ -18,8 +18,8 @@ sourceCompatibility = '21'
 
 repositories {
     mavenCentral()
-    maven { url 'https://repo.spring.io/milestone' }
-    maven { url 'https://repo.spring.io/snapshot' }
+    maven { url = uri("https://repo.spring.io/milestone") }
+    maven { url = uri("https://repo.spring.io/snapshot") }
 }
 
 sourceSets {
@@ -56,4 +56,16 @@ dependencies {
     // Lombok annotations (compile-time only)
     compileOnly 'org.projectlombok:lombok:1.18.32'
     annotationProcessor 'org.projectlombok:lombok:1.18.32'
+    
+    // Test dependencies with modern Pact V4
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.projectreactor:reactor-test'
+    testImplementation 'au.com.dius.pact.consumer:junit5:4.6.11'
+    testImplementation 'au.com.dius.pact.core:model:4.6.11'
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty 'pact.rootDir', 'build/pacts'
+    systemProperty 'pact.writer.overwrite', 'true'
 }

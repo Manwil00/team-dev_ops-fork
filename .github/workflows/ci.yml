@@ -66,3 +66,31 @@ jobs:
             py-genai|py-topics|py-fetcher) pip install -r requirements.txt && pytest ;;
             web-client) npm ci && npm run test -- --watchAll=false ;;
           esac
+
+  contract-test:
+    needs: generate-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+      
+      - name: Install OpenAPI Generator CLI
+        run: npm install -g @openapitools/openapi-generator-cli@latest
+      
+      - name: Generate code
+        run: bash ./api/scripts/gen-all.sh
+        shell: bash
+      
+      - name: Run Pact contract tests
+        run: bash ./api/scripts/run-pact.sh
