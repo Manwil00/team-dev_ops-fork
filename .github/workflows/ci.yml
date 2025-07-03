@@ -74,7 +74,8 @@ jobs:
               # Still need to add tests
               ;;
             web-client)
-              npm install --no-package-lock
+              rm -rf node_modules package-lock.json
+              npm install
               npm run build
               # Still need to add tests
               ;;
