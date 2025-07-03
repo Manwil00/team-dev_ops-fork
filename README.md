@@ -41,7 +41,7 @@ cp .env.example .env
 bash api/scripts/gen-all.sh
 
 # Local development (uses override with hard-coded localhost rules)
-docker compose --env-file ./.env -f infra/docker-compose.yml -f infra/docker-compose.override.yml up --build
+docker compose --env-file ./.env -f infra/docker-compose.yml -f infra/docker-compose.override.yml up --build -d
 
 # Server / production deployment
 docker compose --env-file ./.env -f infra/docker-compose.yml up --build -d

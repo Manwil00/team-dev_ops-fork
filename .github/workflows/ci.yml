@@ -62,9 +62,20 @@ jobs:
         working-directory: ${{ matrix.service.path }}
         run: |
           case ${{ matrix.service.name }} in
-            spring-api) chmod +x gradlew && ./gradlew test ;;
-            py-genai|py-topics|py-fetcher) pip install -r requirements.txt && pytest ;;
-            web-client) npm ci && npm run test -- --watchAll=false ;;
+            spring-api)
+              chmod +x gradlew && ./gradlew test
+              ;;
+            py-fetcher)
+              pip install -r requirements.txt -r test_requirements.txt
+              python -m pytest
+              ;;
+            py-genai|py-topics)
+              pip install -r requirements.txt
+              python -m pytest
+              ;;
+            web-client)
+              npm ci && npm run test -- --watchAll=false
+              ;;
           esac
 
   contract-test:
