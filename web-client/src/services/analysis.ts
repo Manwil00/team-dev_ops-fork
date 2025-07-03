@@ -11,7 +11,7 @@ import type {
 
 // Create configuration for the API client
 const configuration = new Configuration({
-  basePath: import.meta.env.VITE_API_URL || "http://localhost:8080", 
+  basePath: window.location.origin,
 });
 
 // Initialize API clients
