@@ -19,26 +19,6 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  cloud:
-    gateway:
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins: "*"
-            allowedMethods: "*"
-      routes:
-        - id: genai-service
-          uri: http://genai:8000
-          predicates:
-            - Path=/api/v1/classify, /api/v1/embeddings, /api/v1/query/**
-        - id: article-fetcher-service
-          uri: http://article-fetcher:8200
-          predicates:
-            - Path=/api/v1/articles, /api/v1/sources/**
-        - id: topic-discovery-service
-          uri: http://topic-discovery:8100
-          predicates:
-            - Path=/api/v1/topics/**
   main:
     web-application-type: reactive
 
