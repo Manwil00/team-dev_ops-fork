@@ -67,14 +67,16 @@ jobs:
               ;;
             py-fetcher)
               pip install -r requirements.txt -r test_requirements.txt
-              python -m pytest
+              # The contract test is run in the dedicated 'contract-test' job.
               ;;
             py-genai|py-topics)
               pip install -r requirements.txt
-              python -m pytest
+              # Still need to add tests
               ;;
             web-client)
-              npm ci && npm run test -- --watchAll=false
+              npm install
+              npm run build
+              # Still need to add tests
               ;;
           esac
 
