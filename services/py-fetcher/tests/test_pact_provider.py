@@ -11,6 +11,8 @@ import time
 import requests
 import os
 from pact import Verifier
+import datetime
+from niche_explorer_models.models.article import Article
 
 
 class TestPyFetcherProvider:
@@ -24,7 +26,7 @@ class TestPyFetcherProvider:
         """Start py-fetcher service for testing"""
         # Start the FastAPI service
         process = subprocess.Popen([
-            "python", "-m", "uvicorn", 
+            "python3", "-m", "uvicorn", 
             "src.main:app", 
             "--host", "127.0.0.1", 
             "--port", "8200"
@@ -52,7 +54,7 @@ class TestPyFetcherProvider:
             time.sleep(1)
         raise Exception(f"Service at {url} did not start within {timeout} seconds")
 
-    def test_against_api_server_contract(self, provider_service):
+    def test_against_api_server_contract(self, provider_service, mocker):
         """
         Verify py-fetcher can satisfy the contract from api-server.
         
@@ -77,14 +79,41 @@ class TestPyFetcherProvider:
 
         # Provider states - these correspond to the "given" clauses in consumer test
         def arxiv_service_available():
-            """Set up state: arxiv service is available"""
-            # In a real scenario, you might mock external services here
-            # For now, we assume arxiv API is available
+            """Set up state: arxiv service is available for fetching articles."""
+            # This state is for the 'POST /api/v1/articles' interaction.
+            # We mock the external dependency (arxiv_fetcher) to ensure
+            # we are testing the service's logic in isolation.
+            mock_article = Article(
+                id="2301.00001",
+                title="Advanced Machine Learning Techniques",
+                link="https://arxiv.org/abs/2301.00001",
+                summary="This paper explores advanced ML techniques...",
+                authors=["John Doe", "Jane Smith"],
+                published=datetime.datetime(2023, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc),
+                source="arxiv"
+            )
+
+            async def mock_fetch(*args, **kwargs):
+                return [mock_article]
+
+            # Patch the fetch method of the arxiv_fetcher singleton
+            mocker.patch(
+                "src.services.arxiv_service.arxiv_fetcher.fetch",
+                side_effect=mock_fetch
+            )
+            return True
+
+        def arxiv_categories_are_available():
+            """Set up state: arxiv categories are available."""
+            # This state is for the 'GET /api/v1/sources/{source}/categories' interaction.
+            # The logic for this endpoint is hardcoded in the py-fetcher service,
+            # so no specific setup is required. The test will hit the real endpoint code.
             return True
 
         # Configure provider states
         provider_states = {
-            "arxiv service is available": arxiv_service_available
+            "arxiv service is available": arxiv_service_available,
+            "arxiv categories are available": arxiv_categories_are_available,
         }
 
         # Run verification
