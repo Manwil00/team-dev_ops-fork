@@ -52,6 +52,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.1'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.1'
     implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.20'
+    implementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
 
     // Lombok annotations (compile-time only)
     compileOnly 'org.projectlombok:lombok:1.18.32'

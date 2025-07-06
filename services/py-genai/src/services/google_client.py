@@ -3,6 +3,7 @@ import logging
 import os
 import google.generativeai as genai
 from ..settings import settings
+from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,39 @@ class GoogleGenAIClient:
         except Exception as e:
             logger.error("Failed to classify query: %s", e)
             return "research", "cs.CV"
+
+    def generate_text(
+        self, prompt: str, model_name: str, max_tokens: int, temperature: float
+    ) -> str:
+        """
+        Generates text using the specified Google Generative AI model.
+
+        Args:
+            prompt: The prompt to send to the model.
+            model_name: The name of the model to use (e.g., "gemini-pro").
+            max_tokens: The maximum number of tokens to generate.
+            temperature: The temperature for sampling.
+
+        Returns:
+            The generated text.
+        """
+        try:
+            logger.info(
+                f"Generating text with model '{model_name}' and prompt: {prompt[:100]}..."
+            )
+            model = genai.GenerativeModel(model_name or settings.GENERATION_MODEL)
+            config = genai.types.GenerationConfig(
+                max_output_tokens=max_tokens, temperature=temperature
+            )
+            response = model.generate_content(prompt, generation_config=config)
+            logger.info("Successfully generated text.")
+            return response.text
+        except Exception as e:
+            logger.error(f"Failed to generate text: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail={"code": "GENERATION_ERROR", "message": str(e)},
+            ) from e
 
 
 # Singleton instance

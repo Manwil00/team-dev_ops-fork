@@ -1,7 +1,6 @@
 import pytest
 import chromadb
 from testcontainers.chroma import ChromaContainer
-from chromadb.config import Settings
 import os
 
 

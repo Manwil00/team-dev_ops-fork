@@ -12,21 +12,30 @@ class RedditFetcher:
         for entry in feed.entries[:max_results]:
             # Parse published date if available
             published = None
-            if hasattr(entry, 'published_parsed') and entry.published_parsed:
+            if entry.get("published_parsed"):
                 try:
                     published = datetime(*entry.published_parsed[:6])
-                except:
+                except Exception:
+                    pass
+            # Fallback to updated if published is not available
+            elif entry.get("updated_parsed"):
+                try:
+                    published = datetime(*entry.updated_parsed[:6])
+                except Exception:
                     pass
 
-            articles.append(Article(
-                id=entry.id,
-                title=entry.title,
-                link=entry.link,
-                summary=entry.summary,
-                authors=[],  # Reddit posts don't have traditional authors
-                published=published,
-                source="reddit"
-            ))
+            articles.append(
+                Article(
+                    id=entry.id,
+                    title=entry.title,
+                    link=entry.link,
+                    summary=entry.summary,
+                    authors=[],  # Reddit posts don't have traditional authors
+                    published=published,
+                    source="reddit",
+                )
+            )
         return articles
+
 
 reddit_fetcher = RedditFetcher()

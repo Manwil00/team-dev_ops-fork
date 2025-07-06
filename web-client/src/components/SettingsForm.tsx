@@ -35,18 +35,31 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
   const [advancedMode, setAdvancedMode] = useState(false);
   const [searchTerms, setSearchTerms] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('cs.CV');
-  const [arxivCategories, setArxivCategories] = useState<Record<string, string[]>>({});
+  const [categories, setCategories] = useState<Record<string, string[]>>({});
+  const [isLoading, setIsLoading] = useState(true);
   const [showCategories, setShowCategories] = useState(false);
 
-  // Load ArXiv categories
   useEffect(() => {
-    if (source === 'research' && !autoDetect) {
-      fetch('/api/categories?source=arxiv')
-        .then(res => res.json())
-        .then(data => setArxivCategories(data))
-        .catch(err => console.error('Failed to load ArXiv categories:', err));
+    const fetchCategories = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/v1/sources/arxiv/categories');
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories');
+        }
+        const data = await response.json();
+        setCategories(data);
+      } catch (error) {
+        console.error(error);
+        // On error, categories will remain an empty object.
+        // The UI will show a loading or empty state.
+      } finally {
+        setIsLoading(false);
     }
-  }, [source, autoDetect]);
+    };
+
+    fetchCategories();
+  }, []);
 
   // Build advanced query when search terms or category changes
   useEffect(() => {
@@ -152,15 +165,24 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
                         className="w-full border border-input rounded-md p-2 appearance-none"
+                        disabled={isLoading || Object.keys(categories).length === 0}
                       >
-                        {Object.entries(arxivCategories).map(([field, categories]) => (
+                        {isLoading ? (
+                          <option>Loading categories...</option>
+                        ) : Object.keys(categories).length === 0 ? (
+                          <option>Could not load categories</option>
+                        ) : (
+                          Object.entries(categories).map(([field, categories]) => (
                           <optgroup key={field} label={field}>
                             {categories.map(cat => {
-                              const [code, name] = cat.split(' - ');
-                              return <option key={code} value={code}>{code} - {name}</option>;
+                                // The category format can be either "cs.AI" or "cs.AI - Artificial Intelligence"
+                                const [code, ...nameParts] = cat.split(' - ');
+                                const name = nameParts.join(' - ');
+                                return <option key={code} value={code}>{code}{name ? ` - ${name}` : ''}</option>;
                             })}
                           </optgroup>
-                        ))}
+                          ))
+                        )}
                       </select>
                       <Button
                         type="button"

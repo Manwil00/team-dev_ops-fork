@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import MagicMock, patch
 from src.services.embedding_service import EmbeddingService
 
 
@@ -14,7 +14,6 @@ def mock_embedding_service():
     ) as mock_google_client, patch(
         "src.services.embedding_service.chromadb.PersistentClient"
     ) as mock_chromadb:
-
         # Mock instances that the service constructor will use
         mock_google_embed_instance = MagicMock()
         mock_google_embed_instance.embed_documents = MagicMock(

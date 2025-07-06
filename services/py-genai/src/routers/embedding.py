@@ -36,7 +36,7 @@ async def generate_embeddings(request: EmbeddingRequest):
 
 @router.get("/embeddings", response_model=EmbeddingResponse)
 async def get_embeddings(
-    ids: List[str] = Query(..., description="Document IDs to retrieve embeddings for")
+    ids: List[str] = Query(..., description="Document IDs to retrieve embeddings for"),
 ):
     """Retrieve cached embeddings by document IDs"""
     try:

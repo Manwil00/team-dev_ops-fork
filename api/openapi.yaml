@@ -285,6 +285,41 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/generate/text:
+    post:
+      tags: [AI]
+      summary: Generate text using a large language model
+      description: |
+        Takes a prompt and returns a generated text from a specified Large Language Model (e.g., Gemini, OpenRouter).
+        This can be used for various generative tasks like summarizing topics, creating labels, or answering questions based on provided context.
+        The prompt can contain placeholders like `[DOCUMENTS]` and `[KEYWORDS]` which should be replaced by the caller.
+      operationId: generateText
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateTextRequest'
+      responses:
+        "200":
+          description: Successfully generated text
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateTextResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   # Article Fetcher Service endpoints (ge74tif.student.k8s.aet.cit.tum.de:8200)
   /api/v1/articles:
     post:
@@ -417,6 +452,41 @@ components:
           maximum: 1
           description: Confidence score for the classification (0-1)
       required: [source, source_type, suggested_category]
+
+    GenerateTextRequest:
+      type: object
+      properties:
+        prompt:
+          type: string
+          description: The prompt to send to the LLM. Can include placeholders like [DOCUMENTS] and [KEYWORDS].
+        model:
+          type: string
+          description: "The model to use for generation. Defaults to the service's configured model."
+          example: "gemini-pro"
+        max_tokens:
+          type: integer
+          description: "Maximum number of tokens to generate."
+          default: 256
+        temperature:
+          type: number
+          format: float
+          description: "Controls randomness. Lower is more deterministic."
+          default: 0.7
+      required: [prompt]
+
+    GenerateTextResponse:
+      type: object
+      properties:
+        text:
+          type: string
+          description: The generated text.
+        model:
+          type: string
+          description: The model that was used for generation.
+        prompt:
+          type: string
+          description: The prompt that was used for generation.
+      required: [text, model, prompt]
 
     EmbeddingRequest:
       type: object

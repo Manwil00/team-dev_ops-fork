@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from niche_explorer_models.models.topic_discovery_request import TopicDiscoveryRequest
 from niche_explorer_models.models.topic_discovery_response import TopicDiscoveryResponse
-from niche_explorer_models.models.article import Article
 from .services.topic_service import topic_service
 import logging
 import os
@@ -47,7 +46,7 @@ async def discover_topics(request: TopicDiscoveryRequest):
             min_cluster_size=min_cluster_size,
         )
 
-        logger.info(f"Successfully discovered topics")
+        logger.info("Successfully discovered topics")
         return result
 
     except Exception as e:

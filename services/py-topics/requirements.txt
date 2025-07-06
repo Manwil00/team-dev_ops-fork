@@ -6,3 +6,8 @@ umap-learn
 scikit-learn
 numpy<2.0
 httpx
+# Core dependencies for a lightweight BERTopic install
+pandas
+tqdm
+plotly
+pyyaml
