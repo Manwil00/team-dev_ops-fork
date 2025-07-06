@@ -40,21 +40,21 @@ echo "--> Running all Python provider tests..."
 echo "--- Verifying py-fetcher ---"
 cd services/py-fetcher
 python -m pip install -q -r requirements.txt -r test_requirements.txt ./generated
-PYTHONPATH=src python -m pytest tests/test_pact_provider.py -v
+PYTHONPATH=src python -m pytest tests/pact/test_pact_provider.py -v
 cd ../..
 
 # --- Provider: py-genai ---
 echo "--- Verifying py-genai ---"
 cd services/py-genai
 python -m pip install -q -r requirements.txt -r test_requirements.txt ./generated
-PYTHONPATH=src python -m pytest tests/test_pact_provider.py -v
+PYTHONPATH=src python -m pytest tests/pact/test_pact_provider.py -v
 cd ../..
 
 # --- Provider: py-topics ---
 echo "--- Verifying py-topics ---"
 cd services/py-topics
 python -m pip install -q -r requirements.txt -r test_requirements.txt ./generated
-PYTHONPATH=src python -m pytest tests/test_pact_provider.py -v
+PYTHONPATH=src python -m pytest tests/pact/test_pact_provider.py -v
 cd ../..
 
 echo "All contract tests completed successfully!" 

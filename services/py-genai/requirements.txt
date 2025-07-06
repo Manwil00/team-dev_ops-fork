@@ -3,7 +3,7 @@ uvicorn[standard]
 pydantic
 langchain
 langchain-google-genai
-chromadb
+chromadb==0.4.24
 arxiv
 requests
 google-generativeai
