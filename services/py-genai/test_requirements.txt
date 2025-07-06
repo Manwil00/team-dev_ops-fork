@@ -1,12 +1,10 @@
+-r requirements.txt
 pytest
 pytest-cov
 pytest-asyncio
 pytest-mock
 # Test containers are managed by the Gradle build
 pact-python==2.2.1
-python-dotenv
-fastapi
-uvicorn
 pre-commit
 testcontainers
 ruff

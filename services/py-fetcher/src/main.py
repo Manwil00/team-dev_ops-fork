@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from niche_explorer_models.models.article_fetch_request import ArticleFetchRequest
 from niche_explorer_models.models.article_fetch_response import ArticleFetchResponse
+from typing import Dict, List
 
 import logging
 from .services.arxiv_service import arxiv_fetcher
@@ -21,32 +22,21 @@ app = FastAPI(
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
     """
-    Custom exception handler for Pydantic validation errors to return a 400
-    Bad Request response that matches the API gateway's error format.
+    Custom exception handler for Pydantic validation errors.
+    This is to ensure the error response matches the format of other services.
     """
-    # Check if the error is for a missing 'source' field
-    is_missing_source = any(
-        err["msg"] == "Field required" and "source" in err["loc"]
-        for err in exc.errors()
+    return JSONResponse(
+        status_code=422,
+        content={"code": "INVALID_REQUEST", "message": str(exc)},
     )
-
-    if is_missing_source:
-        return JSONResponse(
-            status_code=400,
-            content={
-                "code": "INVALID_REQUEST",
-                "message": "Source is a required field",
-            },
-        )
-
-    # For other validation errors, fall back to default behavior
-    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 
 @app.post("/api/v1/articles", response_model=ArticleFetchResponse)
-async def fetch_articles(request: ArticleFetchRequest):
+async def fetch_articles(request: ArticleFetchRequest) -> ArticleFetchResponse:
     """Fetch articles from the specified source"""
     try:
         logger.info(
@@ -70,7 +60,9 @@ async def fetch_articles(request: ArticleFetchRequest):
                 search_query = (
                     f"cat:{request.category}" if request.category else request.query
                 )
-            articles = await arxiv_fetcher.fetch(search_query, max_results)
+            articles = await arxiv_fetcher.fetch(
+                query=search_query, max_results=max_results
+            )
 
             # ------------------------------------------------------------------
             # Multi-step fallback to avoid empty result sets
@@ -91,7 +83,9 @@ async def fetch_articles(request: ArticleFetchRequest):
                         "Advanced query empty – retrying category-only '%s'",
                         fallback_query,
                     )
-                    articles = await arxiv_fetcher.fetch(fallback_query, max_results)
+                    articles = await arxiv_fetcher.fetch(
+                        query=fallback_query, max_results=max_results
+                    )
 
             if len(articles) == 0:
                 free_text_query = request.query
@@ -100,7 +94,9 @@ async def fetch_articles(request: ArticleFetchRequest):
                         "Category query empty – retrying free-text '%s'",
                         free_text_query,
                     )
-                    articles = await arxiv_fetcher.fetch(free_text_query, max_results)
+                    articles = await arxiv_fetcher.fetch(
+                        query=free_text_query, max_results=max_results
+                    )
 
             if len(articles) == 0:
                 logger.warning(
@@ -110,7 +106,9 @@ async def fetch_articles(request: ArticleFetchRequest):
         elif request.source == "reddit":
             # Treat `category` as subreddit (fallback to free-text query if absent)
             subreddit = request.category or request.query
-            articles = await reddit_fetcher.fetch(subreddit, max_results)
+            articles = await reddit_fetcher.fetch(
+                subreddit=subreddit, max_results=max_results
+            )
         else:
             raise HTTPException(
                 status_code=400, detail=f"Unsupported source: {request.source}"
@@ -129,7 +127,7 @@ async def fetch_articles(request: ArticleFetchRequest):
 
 
 @app.get("/api/v1/sources/{source}/categories")
-async def get_source_categories(source: str):
+async def get_source_categories(source: str) -> Dict[str, List[str]]:
     """Get available categories for a specific data source"""
     if source == "arxiv":
         return {
@@ -302,11 +300,12 @@ async def get_source_categories(source: str):
             ],
         }
     else:
-        # Return empty list for other sources for now
-        return {}
+        raise HTTPException(
+            status_code=404, detail=f"No categories found for source '{source}'"
+        )
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> Dict[str, str]:
     """Health check endpoint"""
     return {"status": "healthy"}
