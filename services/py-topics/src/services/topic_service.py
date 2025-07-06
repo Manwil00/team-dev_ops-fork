@@ -1,5 +1,6 @@
+import asyncio
 import numpy as np
-from typing import List, Any
+from typing import List, Dict
 import uuid
 from bertopic import BERTopic
 import pandas as pd
@@ -15,9 +16,9 @@ import re
 
 logger = logging.getLogger(__name__)
 
-# ------------------------------------------------------------------------------------
-# TopicDiscoveryService – now powered by the BERTopic library.
-# ------------------------------------------------------------------------------------
+# Prompts for the LLM
+LABEL_PROMPT = "Your task is to create a concise, 5-word topic label. The topic is defined by these keywords: [KEYWORDS] and these documents: [DOCUMENTS]. Return ONLY the label itself, with no additional text or explanations."
+DESCRIPTION_PROMPT = "Your task is to write a two-sentence summary for a topic. The topic is defined by these keywords: [KEYWORDS] and these documents: [DOCUMENTS]. Return ONLY the two-sentence summary, with no additional text or explanations."
 
 
 class TopicDiscoveryService:
@@ -26,19 +27,27 @@ class TopicDiscoveryService:
         self.logger = logging.getLogger(__name__)
         self.http_client: httpx.AsyncClient | None = None
 
-    async def discover_topic(
-        self, query: str, article_keys: list, articles: list, min_cluster_size: int = 3
-    ) -> TopicDiscoveryResponse:
-        """Discover topics by clustering with BERTopic using external embeddings."""
-        self.logger.info(f"Starting BERTopic discovery for {len(articles)} articles.")
+    async def _get_async_client(self) -> httpx.AsyncClient:
+        if self.http_client is None:
+            self.http_client = httpx.AsyncClient(timeout=60.0)
+        return self.http_client
 
+    async def discover_topic(
+        self,
+        query: str,
+        article_keys: list,
+        articles: list,
+        min_cluster_size: int = 3,
+        nr_topics: int | None = 5,
+        max_articles_per_topic: int = 75,
+    ) -> TopicDiscoveryResponse:
+        self.logger.info(f"Starting BERTopic discovery for {len(articles)} articles.")
         if not articles:
             return TopicDiscoveryResponse(
                 query=query, topics=[], total_articles_processed=0
             )
 
         try:
-            # 1. Fetch embeddings and filter out any articles for which it failed
             embeddings = await self._get_embeddings(article_keys, articles)
             valid_indices = [i for i, emb in enumerate(embeddings) if emb is not None]
             if not valid_indices:
@@ -52,70 +61,52 @@ class TopicDiscoveryService:
                 f"{art.title} {art.summary or ''}".strip() for art in final_articles
             ]
 
-            # 2. Run BERTopic, now with stop words removed for better quality topics
             vectorizer_model = CountVectorizer(stop_words="english")
             topic_model = BERTopic(
                 min_topic_size=min_cluster_size,
                 vectorizer_model=vectorizer_model,
                 verbose=False,
+                nr_topics=nr_topics,
             )
             topic_model.fit_transform(docs, embeddings_array)
-            self.logger.info(
-                f"BERTopic found {topic_model.get_topic_info()['Topic'].nunique() - 1} topics."
-            )
 
-            # 3. Process results using pandas for conciseness
             topics_df = topic_model.get_topic_info()
-            # Filter out the outlier topic
             topics_df = topics_df[topics_df.Topic != -1]
 
-            # Get the documents and their assigned topics
+            tasks = []
+            for _, topic_row in topics_df.iterrows():
+                tasks.append(
+                    self._generate_representations_for_topic(
+                        topic_model, topic_row.Topic, docs
+                    )
+                )
+
+            generated_reps = await asyncio.gather(*tasks)
+            rep_map = {rep["id"]: rep for rep in generated_reps if rep}
+
             documents_df = pd.DataFrame(
                 {"doc": docs, "article": final_articles, "topic": topic_model.topics_}
             )
-
-            # Group articles by topic
             articles_by_topic = (
                 documents_df[documents_df.topic != -1]
                 .groupby("topic")["article"]
                 .apply(list)
             )
-
-            # Generate a stable UUID for each topic ID
             topic_id_to_uuid = {
                 topic_id: str(uuid.uuid4()) for topic_id in articles_by_topic.keys()
             }
 
-            self.logger.info(
-                f"Found {len(topics_df)} topics to process. Starting description generation."
-            )
             response_topics = []
             for _, topic_row in topics_df.iterrows():
                 topic_id = topic_row.Topic
-                self.logger.info(f"Processing topic ID: {topic_id}")
-
-                # Skip if the topic has no articles after filtering
-                if topic_id not in topic_id_to_uuid:
+                if topic_id not in topic_id_to_uuid or topic_id not in rep_map:
                     continue
 
                 new_topic_id = topic_id_to_uuid[topic_id]
-                topic_representation = topic_row.Representation
-                title = self._clean_topic_title(topic_row.Name)
-
-                # Get articles for the current topic
+                generated_rep = rep_map[topic_id]
+                title = self._clean_topic_title(generated_rep["label"])
+                description = generated_rep["description"]
                 topic_articles = articles_by_topic.get(topic_id, [])
-
-                # Generate a better description using the LLM service
-                self.logger.info(
-                    f"Generating description for topic {topic_id} ('{title}')..."
-                )
-                description = await self._generate_description_from_llm(
-                    keywords=topic_representation,
-                    documents=topic_articles[:4],  # Pass top 4 representative articles
-                )
-                self.logger.info(
-                    f"Successfully generated description for topic {topic_id}."
-                )
 
                 response_topics.append(
                     Topic(
@@ -124,14 +115,13 @@ class TopicDiscoveryService:
                         description=description,
                         article_count=len(topic_articles),
                         relevance=int(topic_row.get("Relevance", 100)),
-                        articles=topic_articles,
+                        articles=topic_articles[:max_articles_per_topic],
                     )
                 )
 
             response_topics.sort(
                 key=lambda t: (t.relevance, t.article_count), reverse=True
             )
-
             return TopicDiscoveryResponse(
                 query=query,
                 topics=response_topics,
@@ -142,17 +132,65 @@ class TopicDiscoveryService:
             self.logger.error(f"Error in BERTopic discovery: {e}", exc_info=True)
             return self._fallback_response(query, articles)
 
+    async def _generate_representations_for_topic(
+        self, topic_model: BERTopic, topic_id: int, docs: List[str]
+    ) -> Dict | None:
+        try:
+            keywords = topic_model.get_topic(topic_id)
+            representative_docs = topic_model.get_representative_docs(topic_id)
+
+            if not keywords or not representative_docs:
+                self.logger.warning(
+                    f"Could not retrieve keywords or docs for topic {topic_id}"
+                )
+                # Fallback to default representations
+                return {
+                    "id": topic_id,
+                    "label": "Topic " + str(topic_id),
+                    "description": "No description available.",
+                }
+
+            label_task = self._generate_text_from_llm(
+                LABEL_PROMPT, keywords, representative_docs
+            )
+            description_task = self._generate_text_from_llm(
+                DESCRIPTION_PROMPT, keywords, representative_docs
+            )
+
+            label, description = await asyncio.gather(label_task, description_task)
+
+            return {"id": topic_id, "label": label, "description": description}
+        except Exception as e:
+            self.logger.error(
+                f"Failed to generate representation for topic {topic_id}: {e}"
+            )
+            return None
+
+    async def _generate_text_from_llm(
+        self, prompt_template: str, keywords: List[str], documents: List[str]
+    ) -> str:
+        client = await self._get_async_client()
+        keyword_str = ", ".join([kw[0] for kw in keywords])
+        doc_str = "\n".join([f"- {doc}" for doc in documents])
+        final_prompt = prompt_template.replace("[KEYWORDS]", keyword_str).replace(
+            "[DOCUMENTS]", doc_str
+        )
+
+        req = GenerateTextRequest(prompt=final_prompt)
+        resp = await client.post(
+            f"{self.genai_base_url.rstrip('/')}/api/v1/generate/text",
+            json=req.model_dump(by_alias=True),
+        )
+        resp.raise_for_status()
+        return resp.json().get("text", "")
+
     async def _get_embeddings(
         self, article_keys: list, articles: list
     ) -> List[list[float] | None]:
-        """Fetches embeddings from the GenAI service, with a GET->POST fallback."""
+        client = await self._get_async_client()
         embeddings: List[list[float] | None] = [None] * len(articles)
-        if not self.http_client:
-            self.http_client = httpx.AsyncClient(timeout=30.0)
-
-        # Try GET first
         try:
-            resp = await self.http_client.get(
+            resp = await client.get(
                 f"{self.genai_base_url.rstrip('/')}/api/v1/embeddings",
                 params={"ids": article_keys},
             )
@@ -163,7 +201,6 @@ class TopicDiscoveryService:
         except Exception as e:
             self.logger.error("GET /embeddings failed: %s", e)
 
-        # Fallback to POST for any missing embeddings
         missing_indices = [i for i, emb in enumerate(embeddings) if emb is None]
         if missing_indices:
             texts_to_embed = [
@@ -173,7 +210,7 @@ class TopicDiscoveryService:
             ids_to_embed = [article_keys[i] for i in missing_indices]
             try:
                 req = EmbeddingRequest(texts=texts_to_embed, ids=ids_to_embed)
-                resp = await self.http_client.post(
+                resp = await client.post(
                     f"{self.genai_base_url.rstrip('/')}/api/v1/embeddings",
                     json=req.model_dump(by_alias=True),
                 )
@@ -186,7 +223,6 @@ class TopicDiscoveryService:
         return embeddings
 
     def _fallback_response(self, query: str, articles: list) -> TopicDiscoveryResponse:
-        """Returns a generic response if detailed topic modeling fails."""
         return TopicDiscoveryResponse(
             query=query,
             topics=[
@@ -203,56 +239,12 @@ class TopicDiscoveryService:
         )
 
     def _clean_topic_title(self, title: str) -> str:
-        """Removes the prefixed topic number and underscores from BERTopic names."""
-        return re.sub(r"^\d+_", "", title).replace("_", " ").strip().capitalize()
-
-    async def _generate_description_from_llm(
-        self, keywords: List[str], documents: List[Any]
-    ) -> str:
-        """Generates a topic description using the GenAI service."""
-        if not self.http_client:
-            # Use a longer timeout for potentially slow LLM calls
-            self.http_client = httpx.AsyncClient(timeout=60.0)
-
-        if not documents:
-            return f"A topic related to: {', '.join(keywords)}"
-
-        # Format documents and keywords for the prompt, following the user's example
-        doc_texts = [f"- {doc.title}: {doc.summary or ''}".strip() for doc in documents]
-        doc_string = "\n".join(doc_texts)
-        keyword_string = ", ".join(keywords)
-
-        prompt = (
-            "I have a topic that contains the following documents:\n[DOCUMENTS]\n\n"
-            "The topic is described by the following keywords: [KEYWORDS]\n\n"
-            "Based on the above information, please provide a concise, three-sentence summary that captures the essence of the topic. "
-            "Do not just list the keywords or repeat the document titles. Synthesize the information into a coherent description."
-        )
-
-        # Replace placeholders
-        final_prompt = prompt.replace("[DOCUMENTS]", doc_string).replace(
-            "[KEYWORDS]", keyword_string
-        )
-
-        self.logger.debug(
-            f"Generating description with prompt: {final_prompt[:300]}..."
-        )
-        try:
-            req = GenerateTextRequest(prompt=final_prompt)
-            resp = await self.http_client.post(
-                f"{self.genai_base_url.rstrip('/')}/api/v1/generate/text",
-                json=req.model_dump(by_alias=True),
-            )
-            resp.raise_for_status()
-            # Assuming the response model is GenerateTextResponse
-            generated_text = resp.json().get(
-                "text", f"A topic related to: {keyword_string}"
-            )
-            self.logger.debug(f"LLM returned description: {generated_text[:100]}...")
-            return generated_text
-        except Exception as e:
-            self.logger.error(f"Failed to generate topic description from LLM: {e}")
-            return f"A topic related to: {keyword_string}"
+        base_title = re.sub(r"^\d+_", "", title).replace("_", " ")
+        base_title = re.sub(
+            r"^(label|topic|name):?\s*\"?", "", base_title, flags=re.IGNORECASE
+        ).strip()
+        base_title = base_title.strip('"')
+        return base_title.capitalize()
 
 
 # Initialize service instance for the main application to import

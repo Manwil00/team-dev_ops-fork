@@ -59,4 +59,4 @@ def test_get_categories_from_real_api_failure():
     # Assert
     assert response.status_code == 404
     json_data = response.json()
-    assert "No categories found" in json_data["detail"]
+    assert "Source 'unsupported' not found" in json_data["detail"]
