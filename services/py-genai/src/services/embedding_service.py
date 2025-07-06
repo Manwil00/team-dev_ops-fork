@@ -13,7 +13,7 @@ class EmbeddingService:
             model=settings.EMBEDDING_MODEL,
             google_api_key=settings.GOOGLE_API_KEY
         )
-        self.db_client = chromadb.PersistentClient(path="/app/chroma_db")
+        self.db_client = chromadb.PersistentClient(path="./chroma_db")
         self.collection = self.db_client.get_or_create_collection(name="arxiv_embeddings")
 
     async def embed_text(self, text: str) -> List[float]:
