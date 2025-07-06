@@ -8,6 +8,10 @@ repos:
         language: system
         files: api/openapi\.yaml$
         pass_filenames: false
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
 
 # Global configuration
 default_stages: [pre-commit]

@@ -42,6 +42,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(PactConsumerTestExt.class)
 @PactTestFor(providerName = "py-fetcher")
 public class ArticleFetcherConsumerTest {
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule());
+
     /**
      * Defines the contract for fetching articles from arXiv. It specifies the
      * expected request body and the successful response structure.
@@ -51,7 +54,7 @@ public class ArticleFetcherConsumerTest {
         var request = new ArticleFetchRequest()
                 .query("machine learning")
                 .source(ArticleFetchRequest.SourceEnum.ARXIV)
-                .limit(10)
+                .limit(1)
                 .category("cs.AI")
                 .filters(Map.of());
 
@@ -69,9 +72,6 @@ public class ArticleFetcherConsumerTest {
                 .articles(List.of(article))
                 .totalFound(1)
                 .source(ArticleFetchResponse.SourceEnum.ARXIV);
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
 
         return builder
                 .given("arxiv service is available")
@@ -94,11 +94,14 @@ public class ArticleFetcherConsumerTest {
      * successful response from the `py-fetcher` (Provider) when fetching
      * articles.
      *
-     * Endpoint: POST /api/v1/articles
+     * Test Description:
+     * This test simulates the `api-server` making a valid request to fetch articles
+     * from `py-fetcher`. It then asserts that the response is correctly deserialized.
      *
-     * After a query is classified, the `api-server` needs to fetch relevant
-     * articles from `py-fetcher`. This test guarantees that the `api-server`
-     * can correctly ask for articles and process the list it gets back.
+     * Assertions:
+     * - `response` is not null, confirming a response was received.
+     * - The list of `articles` has the expected size (1).
+     * - The `source` of the first article is `ARXIV`, as expected.
      */
     public void shouldFetchArxivArticles(MockServer mockServer) {
         // Arrange
@@ -109,7 +112,7 @@ public class ArticleFetcherConsumerTest {
         var request = new ArticleFetchRequest()
                 .query("machine learning")
                 .source(ArticleFetchRequest.SourceEnum.ARXIV)
-                .limit(10)
+                .limit(1)
                 .category("cs.AI");
 
         // Act
@@ -149,14 +152,17 @@ public class ArticleFetcherConsumerTest {
     @PactTestFor(pactMethod = "arxivCategoriesPact")
     /**
      * Verifies that the `api-server` (Consumer) can correctly process a
-     * successful response from the `py-fetcher` (Provider) when fetching the
+     * successful response from the `py-fetcher` (Provider) when fetching
      * available categories for a data source.
      *
-     * Endpoint: GET /api/v1/sources/{source}/categories
+     * Test Description:
+     * This test simulates the `api-server` making a GET request to fetch the list
+     * of available categories for the `arxiv` source.
      *
-     * Display a list of available categories for a source like arXiv. The
-     * `api-server` gets this information from `py-fetcher`. This test ensures
-     * the `api-server` can fetch and understand this list of categories.
+     * Assertions:
+     * - `response` is not null.
+     * - The response map contains the key "Computer Science".
+     * - The list associated with "Computer Science" contains the expected category codes.
      */
     public void shouldFetchArxivCategories(MockServer mockServer) {
         // Arrange
@@ -175,5 +181,71 @@ public class ArticleFetcherConsumerTest {
         assertThat(response).isNotNull();
         assertThat(response).containsKey("Computer Science");
         assertThat(response.get("Computer Science")).contains("cs.AI", "cs.CL");
+    }
+
+    /**
+     * Defines a contract for when the article fetch request is invalid
+     * (e.g., missing the source), expecting a 400 Bad Request response.
+     */
+    @Pact(consumer = "api-server", provider = "py-fetcher")
+    public V4Pact fetchArticlesBadRequest(PactDslWithProvider builder) throws JsonProcessingException {
+        // Create a request that is deliberately invalid (missing required 'source')
+        String invalidRequest = "{\"query\": \"machine learning\"}";
+
+        var error = new com.nicheexplorer.generated.model.Error()
+                .code("INVALID_REQUEST")
+                .message("Source is a required field");
+
+        return builder
+                .given("arxiv service receives an invalid article fetch request")
+                .uponReceiving("a request for articles with a missing source")
+                .method("POST")
+                .path("/api/v1/articles")
+                .headers(Map.of("Content-Type", "application/json"))
+                .body(invalidRequest)
+                .willRespondWith()
+                .status(400)
+                .headers(Map.of("Content-Type", "application/json"))
+                .body(objectMapper.writeValueAsString(error))
+                .toPact(V4Pact.class);
+    }
+
+    @Test
+    @PactTestFor(pactMethod = "fetchArticlesBadRequest")
+    /**
+     * Verifies that the `api-server` (Consumer) can correctly handle a 400 Bad
+     * Request from `py-fetcher` (Provider) if the article fetch request is invalid.
+     *
+     * Test Description:
+     * This test simulates the `api-server` sending a deliberately invalid request
+     * (a JSON body missing the required `source` field) to `py-fetcher`. It uses
+     * `exchangeToMono` to inspect the raw HTTP response.
+     *
+     * Assertions:
+     * - The HTTP status code is `400`.
+     * - The error response body can be deserialized into an `Error` object.
+     * - The `code` field of the error object is `INVALID_REQUEST`.
+     */
+    public void shouldHandleInvalidArticleFetch(MockServer mockServer) {
+        // Arrange
+        var webClient = WebClient.builder()
+                .baseUrl(mockServer.getUrl())
+                .build();
+
+        String invalidRequest = "{\"query\": \"machine learning\"}"; // Missing 'source'
+
+        // Act & Assert
+        var errorResponse = webClient.post()
+                .uri("/api/v1/articles")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(invalidRequest)
+                .exchangeToMono(response -> {
+                    assertThat(response.statusCode().value()).isEqualTo(400);
+                    return response.bodyToMono(com.nicheexplorer.generated.model.Error.class);
+                })
+                .block();
+
+        assertThat(errorResponse).isNotNull();
+        assertThat(errorResponse.getCode()).isEqualTo("INVALID_REQUEST");
     }
 } 

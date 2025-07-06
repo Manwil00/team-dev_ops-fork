@@ -14,6 +14,7 @@ if not GOOGLE_API_KEY:
 # Configure genai client with newer API
 genai.configure(api_key=GOOGLE_API_KEY)
 
+
 class GoogleGenAIClient:
     def __init__(self):
         # No need to create client instance with new API
@@ -39,16 +40,14 @@ class GoogleGenAIClient:
         try:
             model = genai.GenerativeModel(settings.GENERATION_MODEL)
             response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
-                    response_mime_type="application/json"
-                )
+                prompt, generation_config=genai.types.GenerationConfig()
             )
             data = json.loads(response.text)
             return data.get("source", "research"), data.get("feed", "cs.CV")
         except Exception as e:
             logger.error("Failed to classify query: %s", e)
             return "research", "cs.CV"
+
 
 # Singleton instance
 google_client = GoogleGenAIClient()

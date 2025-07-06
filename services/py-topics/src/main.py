@@ -16,32 +16,46 @@ logger = logging.getLogger("topic_discovery")
 app = FastAPI(
     title="NicheExplorer Topic Discovery Service",
     version="1.0.0",
-    description="Discovers topics from article collections using ML clustering"
+    description="Discovers topics from article collections using ML clustering",
 )
+
 
 @app.post("/api/v1/topics/discover", response_model=TopicDiscoveryResponse)
 async def discover_topics(request: TopicDiscoveryRequest):
     """Perform topic discovery on a collection of articles"""
+    if not request.articles:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "INVALID_REQUEST",
+                "message": "Article list cannot be empty",
+            },
+        )
     try:
-        logger.info(f"Received topic discovery request: query='{request.query}', {len(request.articles)} articles")
-        
+        logger.info(
+            f"Received topic discovery request: query='{request.query}', {len(request.articles)} articles"
+        )
+
         # Use min_cluster_size from request or default
-        min_cluster_size = getattr(request, 'min_cluster_size', 2) or 2
-        
+        min_cluster_size = getattr(request, "min_cluster_size", 2) or 2
+
         # Discover topics using the service
         result = await topic_service.discover_topic(
             query=request.query,
             article_keys=request.article_ids,
             articles=request.articles,
-            min_cluster_size=min_cluster_size
+            min_cluster_size=min_cluster_size,
         )
-        
+
         logger.info(f"Successfully discovered topics")
         return result
-        
+
     except Exception as e:
         logger.error(f"Failed to discover topics: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to discover topics: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to discover topics: {str(e)}"
+        )
+
 
 @app.get("/health")
 async def health_check():

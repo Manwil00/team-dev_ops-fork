@@ -51,19 +51,46 @@ public class GenAiConsumerTest {
         var request = new ClassifyRequest().query("machine learning");
         var response = new ClassifyResponse()
                 .source(ClassifyResponse.SourceEnum.ARXIV)
+                .sourceType(ClassifyResponse.SourceTypeEnum.RESEARCH)
                 .suggestedCategory("cs.AI");
 
         return builder
                 .given("genai service is available for classification")
                 .uponReceiving("a request to classify a query")
                 .method("POST")
-                .path("/classify")
+                .path("/api/v1/classify")
                 .headers(Map.of("Content-Type", "application/json"))
                 .body(objectMapper.writeValueAsString(request))
                 .willRespondWith()
                 .status(200)
                 .headers(Map.of("Content-Type", "application/json"))
                 .body(objectMapper.writeValueAsString(response))
+                .toPact(V4Pact.class);
+    }
+
+    /**
+     * Defines a contract for when the classification query is invalid,
+     * expecting a 400 Bad Request response.
+     */
+    @Pact(consumer = "api-server", provider = "py-genai")
+    public V4Pact classifyQueryBadRequestPact(PactDslWithProvider builder) throws JsonProcessingException {
+        var request = new ClassifyRequest().query(""); // Invalid empty query
+
+        var error = new com.nicheexplorer.generated.model.Error()
+                .code("INVALID_REQUEST")
+                .message("Query cannot be empty");
+
+        return builder
+                .given("genai service receives an invalid classification request")
+                .uponReceiving("a request with an empty query")
+                .method("POST")
+                .path("/api/v1/classify")
+                .headers(Map.of("Content-Type", "application/json"))
+                .body(objectMapper.writeValueAsString(request))
+                .willRespondWith()
+                .status(400)
+                .headers(Map.of("Content-Type", "application/json"))
+                .body(objectMapper.writeValueAsString(error))
                 .toPact(V4Pact.class);
     }
 
@@ -86,7 +113,7 @@ public class GenAiConsumerTest {
                 .given("genai service is available for embeddings")
                 .uponReceiving("a request to generate embeddings")
                 .method("POST")
-                .path("/embeddings")
+                .path("/api/v1/embeddings")
                 .headers(Map.of("Content-Type", "application/json"))
                 .body(objectMapper.writeValueAsString(request))
                 .willRespondWith()
@@ -112,7 +139,7 @@ public class GenAiConsumerTest {
                 .given("genai service has existing embeddings")
                 .uponReceiving("a request to retrieve embeddings")
                 .method("GET")
-                .path("/embeddings")
+                .path("/api/v1/embeddings")
                 .query("ids=id1,id2")
                 .willRespondWith()
                 .status(200)
@@ -149,15 +176,19 @@ public class GenAiConsumerTest {
     @Test
     @PactTestFor(pactMethod = "classifyQueryPact")
     /**
-     * Verifies that the `api-server` (Consumer) can correctly handle a response
-     * from the `py-genai` (Provider) when requesting to classify a search query.
-     *
-     * Endpoint: POST /classify
-     *
-     * This is the very first step in an analysis. The
-     * `api-server` sends the user's query to `py-genai` to decide which data
-     * source is most appropriate. The entire workflow depends on this
-     * classification being correct.
+     * Verifies that the `api-server` (Consumer) can correctly handle a successful
+     * response from the `py-genai` (Provider) when classifying a query.
+     * 
+     * Test Description:
+     * This test simulates the `api-server` sending a query ("machine learning") to
+     * the `py-genai` service. It then asserts that the `api-server` correctly
+     * deserializes the successful response.
+     * 
+     * Assertions:
+     * - `response` is not null, confirming a response was received.
+     * - `source` is `ARXIV`, as expected for the test query.
+     * - `sourceType` is `RESEARCH`, matching the source.
+     * - `suggestedCategory` is `cs.AI`, the expected classification.
      */
     public void shouldClassifyQuery(MockServer mockServer) {
         var webClient = WebClient.builder()
@@ -166,7 +197,7 @@ public class GenAiConsumerTest {
         var request = new ClassifyRequest().query("machine learning");
 
         var response = webClient.post()
-                .uri("/classify")
+                .uri("/api/v1/classify")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(ClassifyResponse.class)
@@ -174,21 +205,62 @@ public class GenAiConsumerTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getSource()).isEqualTo(ClassifyResponse.SourceEnum.ARXIV);
+        assertThat(response.getSourceType()).isEqualTo(ClassifyResponse.SourceTypeEnum.RESEARCH);
         assertThat(response.getSuggestedCategory()).isEqualTo("cs.AI");
+    }
+
+    @Test
+    @PactTestFor(pactMethod = "classifyQueryBadRequestPact")
+    /**
+     * Verifies that the `api-server` (Consumer) can correctly handle a 400 Bad
+     * Request response from the `py-genai` (Provider) when the classification
+     * query is invalid.
+     *
+     * Test Description:
+     * This test simulates the `api-server` sending a deliberately invalid request
+     * (an empty query) to the `py-genai` service. It uses `exchangeToMono` to
+     * inspect the raw HTTP response.
+     *
+     * Assertions:
+     * - The HTTP status code is `400`.
+     * - The error response body can be deserialized into an `Error` object.
+     * - The `code` field of the error object is `INVALID_REQUEST`.
+     */
+    public void shouldHandleInvalidClassifyQuery(MockServer mockServer) {
+        var webClient = WebClient.builder()
+                .baseUrl(mockServer.getUrl())
+                .build();
+        var request = new ClassifyRequest().query("");
+
+        var clientResponse = webClient.post()
+                .uri("/api/v1/classify")
+                .bodyValue(request)
+                .exchangeToMono(response -> {
+                    assertThat(response.statusCode().value()).isEqualTo(400);
+                    return response.bodyToMono(com.nicheexplorer.generated.model.Error.class);
+                })
+                .block();
+
+        assertThat(clientResponse).isNotNull();
+        assertThat(clientResponse.getCode()).isEqualTo("INVALID_REQUEST");
     }
 
     @Test
     @PactTestFor(pactMethod = "generateEmbeddingsPact")
     /**
-     * Verifies that the `api-server` (Consumer) can correctly handle a response
-     * from the `py-genai` (Provider) when requesting to generate text embeddings.
+     * Verifies that the `api-server` (Consumer) can correctly handle a successful
+     * response from `py-genai` (Provider) when requesting text embeddings.
      *
-     * Endpoint: POST /embeddings
+     * Test Description:
+     * This test simulates the `api-server` sending a list of texts and their IDs
+     * to the `py-genai` service for embedding generation. It asserts that the
+     * `api-server` correctly deserializes the embedding vectors in the response.
      *
-     * After fetching articles, `api-server` needs to turn
-     * their text into numerical vectors (embeddings) to find topics. It
-     * delegates this task to `py-genai`. This test ensures the data exchange
-     * for this core operation is reliable.
+     * Assertions:
+     * - `response` is not null.
+     * - The list of `embeddings` has the expected size (2).
+     * - The first embedding vector contains the exact expected floating-point values.
+     * - A specific value in the second embedding vector is correct.
      */
     public void shouldGenerateEmbeddings(MockServer mockServer) {
         var webClient = WebClient.builder()
@@ -199,7 +271,7 @@ public class GenAiConsumerTest {
                 .ids(List.of("id1", "id2"));
 
         var response = webClient.post()
-                .uri("/embeddings")
+                .uri("/api/v1/embeddings")
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(EmbeddingResponse.class)
@@ -214,16 +286,17 @@ public class GenAiConsumerTest {
     @Test
     @PactTestFor(pactMethod = "getEmbeddingsPact")
     /**
-     * Verifies that the `api-server` (Consumer) can correctly handle a response
-     * from the `py-genai` (Provider) when requesting to retrieve cached text
-     * embeddings.
+     * Verifies that the `api-server` (Consumer) can correctly handle a successful
+     * response from `py-genai` (Provider) when retrieving cached embeddings.
      *
-     * Endpoint: GET /embeddings
+     * Test Description:
+     * This test simulates the `api-server` requesting previously cached embeddings
+     * from the `py-genai` service by providing a list of document IDs.
      *
-     * This is an optimization. To avoid expensive
-     * re-computation, `py-genai` caches embeddings. This test verifies that
-     * `api-server` can retrieve these cached embeddings by their IDs, making
-     * the analysis process faster.
+     * Assertions:
+     * - `response` is not null.
+     * - The list of `embeddings` has the expected size (2).
+     * - The first embedding vector in the list also has the expected size (2).
      */
     public void shouldGetEmbeddings(MockServer mockServer) {
         var webClient = WebClient.builder()
@@ -231,7 +304,7 @@ public class GenAiConsumerTest {
                 .build();
 
         var response = webClient.get()
-                .uri(uriBuilder -> uriBuilder.path("/embeddings").queryParam("ids", "id1,id2").build())
+                .uri(uriBuilder -> uriBuilder.path("/api/v1/embeddings").queryParam("ids", "id1,id2").build())
                 .retrieve()
                 .bodyToMono(EmbeddingResponse.class)
                 .block();
@@ -244,16 +317,18 @@ public class GenAiConsumerTest {
     @Test
     @PactTestFor(pactMethod = "buildArxivQueryPact")
     /**
-     * Verifies that the `api-server` (Consumer) can correctly handle a response
-     * from the `py-genai` (Provider) when requesting to build a source-specific
-     * query.
+     * Verifies that the `api-server` (Consumer) can correctly handle a successful
+     * response from `py-genai` (Provider) when requesting to build a source-specific
+     * query for arXiv.
      *
-     * Endpoint: POST /api/v1/query/build/{source}
+     * Test Description:
+     * This test simulates the `api-server` sending search terms to `py-genai` to be
+     * transformed into an advanced, source-specific query string for arXiv.
      *
-     * This tests an AI-powered feature where `py-genai`
-     * can convert a simple user query into a complex, optimized query for a
-     * specific source like arXiv. This test ensures the `api-server` can use
-     * this query-building feature correctly.
+     * Assertions:
+     * - `response` is not null.
+     * - The `query` field in the response matches the expected advanced query string.
+     * - The `source` field correctly identifies the query as being for "arxiv".
      */
     public void shouldBuildArxivQuery(MockServer mockServer) {
         var webClient = WebClient.builder()

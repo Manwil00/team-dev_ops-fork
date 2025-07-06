@@ -86,6 +86,35 @@ public class TopicDiscoveryConsumerTest {
                 .toPact(V4Pact.class);
     }
 
+    /**
+     * Defines the contract for an invalid topic discovery request,
+     * such as one with no articles, expecting a 400 Bad Request.
+     */
+    @Pact(consumer = "api-server", provider = "py-topics")
+    public V4Pact discoverTopicsBadRequest(PactDslWithProvider builder) throws JsonProcessingException {
+        var request = new TopicDiscoveryRequest()
+                .query("machine learning")
+                .articles(List.of()) // Invalid empty list
+                .articleIds(List.of());
+
+        var error = new com.nicheexplorer.generated.model.Error()
+                .code("INVALID_REQUEST")
+                .message("Article list cannot be empty");
+
+        return builder
+                .given("topic discovery service receives an invalid request")
+                .uponReceiving("a request to discover topics with no articles")
+                .method("POST")
+                .path("/api/v1/topics/discover")
+                .headers(Map.of("Content-Type", "application/json"))
+                .body(objectMapper.writeValueAsString(request))
+                .willRespondWith()
+                .status(400)
+                .headers(Map.of("Content-Type", "application/json"))
+                .body(objectMapper.writeValueAsString(error))
+                .toPact(V4Pact.class);
+    }
+
     @Test
     @PactTestFor(pactMethod = "discoverTopicsPact")
     /**
@@ -93,14 +122,15 @@ public class TopicDiscoveryConsumerTest {
      * successful response from the `py-topics` (Provider) when requesting
      * topic discovery.
      *
-     * Endpoint: POST /api/v1/topics/discover
+     * Test Description:
+     * This test simulates the `api-server` sending a valid request containing
+     * articles to the `py-topics` service for clustering and analysis.
      *
-     * This is the final and most complex step in the
-     * backend processing. The `api-server` sends the fetched articles and
-     * their embeddings to the `py-topics` service for clustering. This test
-     * is critical because it validates the contract for this large and
-     * complex data exchange, ensuring the final results can be generated and
-     * understood by the `api-server`.
+     * Assertions:
+     * - `response` is not null.
+     * - The list of `topics` has the expected size (1).
+     * - The `title` of the first topic matches the expected value.
+     * - The list of `articles` within the topic contains the original article ID.
      */
     public void shouldDiscoverTopics(MockServer mockServer) {
         var webClient = WebClient.builder()
@@ -133,5 +163,45 @@ public class TopicDiscoveryConsumerTest {
         Topic topic = response.getTopics().get(0);
         assertThat(topic.getTitle()).isEqualTo("ML Techniques");
         assertThat(topic.getArticles()).extracting(Article::getId).contains(article.getId());
+    }
+
+    @Test
+    @PactTestFor(pactMethod = "discoverTopicsBadRequest")
+    /**
+     * Verifies that the `api-server` (Consumer) can correctly handle a 400 Bad
+     * Request from the `py-topics` (Provider) if the topic discovery request
+     * is invalid.
+     *
+     * Test Description:
+     * This test simulates the `api-server` sending a deliberately invalid request
+     * (containing an empty list of articles) to the `py-topics` service. It uses
+     * `exchangeToMono` to inspect the raw HTTP response.
+     *
+     * Assertions:
+     * - The HTTP status code is `400`.
+     * - The error response body can be deserialized into an `Error` object.
+     * - The `code` field of the error object is `INVALID_REQUEST`.
+     */
+    public void shouldHandleInvalidTopicDiscovery(MockServer mockServer) {
+        var webClient = WebClient.builder()
+                .baseUrl(mockServer.getUrl())
+                .build();
+
+        var request = new TopicDiscoveryRequest()
+                .query("machine learning")
+                .articles(List.of())
+                .articleIds(List.of());
+
+        var errorResponse = webClient.post()
+                .uri("/api/v1/topics/discover")
+                .bodyValue(request)
+                .exchangeToMono(response -> {
+                    assertThat(response.statusCode().value()).isEqualTo(400);
+                    return response.bodyToMono(com.nicheexplorer.generated.model.Error.class);
+                })
+                .block();
+
+        assertThat(errorResponse).isNotNull();
+        assertThat(errorResponse.getCode()).isEqualTo("INVALID_REQUEST");
     }
 } 
