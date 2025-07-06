@@ -11,6 +11,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,6 +48,10 @@ public class AnalysisControllerTest {
      */
     @Test
     void whenPostAnalyses_thenReturnsAccepted() {
+        // Arrange
+        when(analysisService.startAnalysis(any(AnalyzeRequest.class))).thenReturn(Mono.empty());
+        
+        // Act & Assert
         webTestClient.post().uri("/api/v1/analyses")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(new AnalyzeRequest().query("test"))

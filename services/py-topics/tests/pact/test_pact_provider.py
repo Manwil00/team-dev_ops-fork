@@ -49,7 +49,7 @@ class TestPyTopicsProvider:
     def test_against_api_server_contract(self, provider_service, mocker):
         pact_file = os.path.join(
             os.path.dirname(__file__),
-            "../../spring-api/build/pacts/api-server-py-topics.json",
+            "../../../spring-api/build/pacts/api-server-py-topics.json",
         )
 
         if not os.path.exists(pact_file):
