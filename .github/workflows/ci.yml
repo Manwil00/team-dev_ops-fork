@@ -124,9 +124,12 @@ jobs:
           CHAIR_API_KEY: ${{ secrets.CHAIR_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
-  integration-test-genai:
+  integration-test:
     needs: setup
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ['py-genai', 'py-topics', 'py-fetcher']
     steps:
       - name: Download workspace with generated code
         uses: actions/download-artifact@v4
@@ -139,15 +142,20 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        working-directory: services/py-genai
+        working-directory: services/${{ matrix.service }}
         run: |
           pip install -r requirements.txt -r test_requirements.txt
           pip install ./generated
+          # py-topics uses testcontainers which requires the docker library
+          if [ "${{ matrix.service }}" = "py-topics" ]; then
+            pip install docker
+          fi
 
-      - name: Run py-genai integration tests
-        working-directory: services/py-genai
+      - name: Run ${{ matrix.service }} integration tests
+        working-directory: services/${{ matrix.service }}
         run: |
           PYTHONPATH=src python -m pytest tests/integration
         env:
+          # Provide all secrets to all jobs; unused ones will be ignored.
           CHAIR_API_KEY: ${{ secrets.CHAIR_API_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
