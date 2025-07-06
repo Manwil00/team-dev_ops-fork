@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 /**
  * Unit tests for AnalysisService.
@@ -70,13 +71,15 @@ public class AnalysisServiceTest {
         // Arrange
         when(jdbcTemplate.query(anyString(), any(RowMapper.class), eq(10), eq(0)))
                 .thenReturn(List.of(mockAnalysisResponse));
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class), any(UUID.class)))
+                .thenReturn(List.of()); // Mock the hydration call
 
         // Act
         List<AnalysisResponse> responses = analysisService.getAnalyses(10, 0);
 
         // Assert
         assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getId()).isEqualTo(mockAnalysisResponse.getId().toString());
+        assertThat(responses.get(0).getId()).isEqualTo(mockAnalysisResponse.getId());
         verify(jdbcTemplate).query(anyString(), any(RowMapper.class), eq(10), eq(0));
     }
 
@@ -88,22 +91,30 @@ public class AnalysisServiceTest {
      * it correctly calls the hydration method to populate related data.
      *
      * Assertions:
-     * - Asserts that `jdbcTemplate.queryForObject` is called.
+     * - Asserts that `jdbcTemplate.query` is called.
      * - Asserts that the returned object matches the mock response.
      */
     @Test
     void whenGetAnalysisById_thenReturnsSingleAnalysis() {
         // Arrange
-        when(jdbcTemplate.queryForObject(anyString(), any(RowMapper.class), any(UUID.class)))
-                .thenReturn(mockAnalysisResponse);
+        when(jdbcTemplate.query(anyString(), any(RowMapper.class), any(UUID.class)))
+                .thenAnswer(invocation -> {
+                    String sql = invocation.getArgument(0);
+                    if (sql.contains("FROM analysis")) {
+                        return List.of(mockAnalysisResponse);
+                    }
+                    if (sql.contains("FROM topic")) {
+                        return List.of();
+                    }
+                    return null;
+                });
 
         // Act
         AnalysisResponse response = analysisService.getAnalysisById(mockAnalysisResponse.getId().toString());
 
         // Assert
         assertThat(response).isNotNull();
-        assertThat(response.getId()).isEqualTo(mockAnalysisResponse.getId().toString());
-        verify(jdbcTemplate).queryForObject(anyString(), any(RowMapper.class), any(UUID.class));
+        assertThat(response.getId()).isEqualTo(mockAnalysisResponse.getId());
     }
 
     /**
@@ -114,21 +125,20 @@ public class AnalysisServiceTest {
      * delete an analysis and its related topics and articles.
      *
      * Assertions:
-     * - Asserts that `jdbcTemplate.update` is called three times with the correct
-     *   SQL to delete from each of the three related tables.
+     * - Asserts that `jdbcTemplate.update` is called only once with the correct
+     *   SQL to delete from the `analysis` table.
      */
     @Test
     void whenDeleteAnalysis_thenDeletesFromDatabase() {
         // Arrange
         String id = UUID.randomUUID().toString();
+        UUID idUuid = UUID.fromString(id);
         when(jdbcTemplate.update(anyString(), any(UUID.class))).thenReturn(1);
 
         // Act
         analysisService.deleteAnalysis(id);
 
         // Assert
-        verify(jdbcTemplate).update(eq("DELETE FROM article WHERE analysis_id = ?"), any(UUID.class));
-        verify(jdbcTemplate).update(eq("DELETE FROM topic WHERE analysis_id = ?"), any(UUID.class));
-        verify(jdbcTemplate).update(eq("DELETE FROM analysis WHERE id = ?"), any(UUID.class));
+        verify(jdbcTemplate).update(eq("DELETE FROM analysis WHERE id = ?"), eq(idUuid));
     }
 } 

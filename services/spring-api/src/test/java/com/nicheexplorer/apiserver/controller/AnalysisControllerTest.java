@@ -19,6 +19,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,7 +50,7 @@ public class AnalysisControllerTest {
     @Test
     void whenPostAnalyses_thenReturnsAccepted() {
         // Arrange
-        when(analysisService.startAnalysis(any(AnalyzeRequest.class))).thenReturn(Mono.empty());
+        doNothing().when(analysisService).startAnalysisWithId(any(UUID.class), any(AnalyzeRequest.class));
         
         // Act & Assert
         webTestClient.post().uri("/api/v1/analyses")
@@ -58,7 +59,7 @@ public class AnalysisControllerTest {
                 .exchange()
                 .expectStatus().isAccepted();
 
-        verify(analysisService).startAnalysis(any(AnalyzeRequest.class));
+        verify(analysisService).startAnalysisWithId(any(UUID.class), any(AnalyzeRequest.class));
     }
 
     /**
