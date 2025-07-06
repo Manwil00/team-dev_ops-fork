@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY web-client/package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci
 
 # Copy the entire web-client directory.
 # This assumes the API client has already been generated locally

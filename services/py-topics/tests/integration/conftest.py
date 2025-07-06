@@ -35,8 +35,12 @@ def genai_service_container():
                 print(line["stream"].strip())
         pytest.fail("Docker image build failed.", pytrace=False)
 
-    # 2. Run the container with the newly built image
-    container = DockerContainer(image=image_tag).with_exposed_ports(8000)
+    # 2. Run the container with the newly built image, passing the key at runtime
+    container = DockerContainer(image=image_tag)
+    if os.getenv("GOOGLE_API_KEY"):
+        container = container.with_env("GOOGLE_API_KEY", os.getenv("GOOGLE_API_KEY"))
+
+    container = container.with_exposed_ports(8000)
 
     with container as genai:
         wait_for_logs(genai, r"Uvicorn running on http://0.0.0.0:8000")

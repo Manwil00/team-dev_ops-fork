@@ -13,48 +13,49 @@ PACT_FILE = os.path.join(
 )
 
 
-class TestPyTopicsProvider:
-    @pytest.fixture(scope="module")
-    def provider_service(self, monkeypatch):
-        # Mock the GENAI_BASE_URL before the service starts
-        monkeypatch.setenv("GENAI_BASE_URL", "http://mock-genai-service")
+@pytest.fixture
+def provider_service(monkeypatch):
+    # Mock the GENAI_BASE_URL before the service starts
+    monkeypatch.setenv("GENAI_BASE_URL", "http://mock-genai-service")
 
-        process = subprocess.Popen(
-            [
-                "python",
-                "-m",
-                "uvicorn",
-                "src.main:app",
-                "--host",
-                "127.0.0.1",
-                "--port",
-                "8100",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+    process = subprocess.Popen(
+        [
+            "python",
+            "-m",
+            "uvicorn",
+            "src.main:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8100",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+    def _wait_for_service(url, timeout=30):
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                if requests.get(url, timeout=5).status_code == 200:
+                    print("Provider service started successfully.")
+                    return
+            except requests.exceptions.ConnectionError:
+                time.sleep(1)
+        stdout, stderr = process.communicate()
+        raise Exception(
+            f"Provider service at {url} did not start. Logs:\\n{stderr.decode()}"
         )
 
-        def _wait_for_service(url, timeout=30):
-            start_time = time.time()
-            while time.time() - start_time < timeout:
-                try:
-                    if requests.get(url, timeout=5).status_code == 200:
-                        print("Provider service started successfully.")
-                        return
-                except requests.exceptions.ConnectionError:
-                    time.sleep(1)
-            stdout, stderr = process.communicate()
-            raise Exception(
-                f"Provider service at {url} did not start. Logs:\\n{stderr.decode()}"
-            )
+    _wait_for_service("http://127.0.0.1:8100/health")
+    yield "http://127.0.0.1:8100"
 
-        _wait_for_service("http://127.0.0.1:8100/health")
-        yield "http://127.0.0.1:8100"
+    print("Terminating provider service...")
+    process.terminate()
+    process.wait()
 
-        print("Terminating provider service...")
-        process.terminate()
-        process.wait()
 
+class TestPyTopicsProvider:
     def test_against_api_server_contract(self, provider_service, mocker):
         if not os.path.exists(PACT_FILE):
             pytest.fail(f"Pact file not found: {os.path.abspath(PACT_FILE)}")
