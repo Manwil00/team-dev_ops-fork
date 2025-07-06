@@ -78,4 +78,4 @@ def test_get_categories_unsupported_source():
 
     # Assert
     assert response.status_code == 404
-    assert "No categories found" in response.json()["detail"]
+    assert "Source 'unsupported' not found." in response.json()["detail"]

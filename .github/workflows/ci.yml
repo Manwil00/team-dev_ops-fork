@@ -82,8 +82,14 @@ jobs:
             spring-api)
               chmod +x gradlew && ./gradlew test --no-daemon
               ;;
-            py-fetcher|py-genai|py-topics)
+            py-fetcher|py-genai)
               pip install -r requirements.txt -r test_requirements.txt
+              pip install ./generated
+              PYTHONPATH=src python -m pytest --ignore=tests/pact --ignore=tests/integration
+              ;;
+            py-topics)
+              pip install -r requirements.txt -r test_requirements.txt
+              pip install --no-deps bertopic
               pip install ./generated
               PYTHONPATH=src python -m pytest --ignore=tests/pact --ignore=tests/integration
               ;;
@@ -148,6 +154,7 @@ jobs:
           pip install ./generated
           # py-topics uses testcontainers which requires the docker library
           if [ "${{ matrix.service }}" = "py-topics" ]; then
+            pip install --no-deps bertopic
             pip install docker
           fi
 

@@ -54,6 +54,7 @@ cd ../..
 echo "--- Verifying py-topics ---"
 cd services/py-topics
 python -m pip install -q -r requirements.txt -r test_requirements.txt ./generated
+pip install -q --no-deps bertopic
 PYTHONPATH=src python -m pytest tests/pact/test_pact_provider.py -v
 cd ../..
 
