@@ -8,4 +8,5 @@ python-dotenv
 fastapi
 uvicorn
 pre-commit
-black 
+black
+testcontainers 
