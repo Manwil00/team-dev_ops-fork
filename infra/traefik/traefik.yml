@@ -7,7 +7,16 @@ entryPoints:
     address: ":80"
   websecure:
     address: ":443"
+  metrics:
+    address: ":8082"
 
 api:
   dashboard: true
   insecure: true  # dont use this in production!
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addEntryPointsLabels: true
+    addRoutersLabels: true
+    addServicesLabels: true

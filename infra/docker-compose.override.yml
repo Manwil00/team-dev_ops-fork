@@ -35,3 +35,12 @@ services:
       - "traefik.http.middlewares.cors-headers.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
       - "traefik.http.middlewares.cors-headers.headers.accesscontrolallowheaders=*"
       - "traefik.http.services.api-server.loadbalancer.server.port=8080" 
+
+  prometheus:
+    labels:
+      # Use a host rule for local access. If your .env has DOMAIN=localhost,
+      # you will access this at http://prometheus.localhost
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
+
+      # This is the key override: it explicitly disables TLS for this router.
+      - "traefik.http.routers.prometheus.tls=false"
