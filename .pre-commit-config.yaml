@@ -9,6 +9,13 @@ repos:
         files: api/openapi\.yaml$
         pass_filenames: false
 
+      - id: bundle-openapi
+        name: Bundle ReDoc HTML
+        entry: bash -c 'npx redoc-cli bundle api/openapi.yaml -o docs/api.html'
+        language: system
+        files: ^api/openapi\.yaml$
+        pass_filenames: false
+
 # Global configuration
 default_stages: [pre-commit]
 fail_fast: false

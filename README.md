@@ -35,22 +35,31 @@ git clone https://github.com/your-org/team-dev_ops.git
 cd team-dev_ops
 
 # Configure environment
-echo "GOOGLE_API_KEY=your_gemini_api_key_here" > .env
+cp .env.example .env
 
 # Generate OpenAPI client libraries
 bash api/scripts/gen-all.sh
 
-# Start all services
-docker compose -f infra/docker-compose.yml up --build
-```
+# Local development (uses override with hard-coded localhost rules)
+docker compose --env-file ./.env -f infra/docker-compose.yml -f infra/docker-compose.override.yml up --build -d
+
+# Server / production deployment
+docker compose --env-file ./.env -f infra/docker-compose.yml up --build -d
+
 
 Access the application at: http://localhost
+Traefik dashboard: http://localhost:8080/dashboard/
 
 ## API Documentation
 
-The complete REST API specification is available in `api/openapi.yaml`. This file can be:
-- Used with Swagger UI for interactive documentation
-- Referenced for client library generation
+The complete REST API specification is available in `api/openapi.yaml` and published automatically via GitHub Pages:
+
+| Format | Live link |
+| ------ | --------- |
+| ReDoc  | https://AET-DevOps25.github.io/team-dev_ops/api.html |
+| Swagger UI | https://AET-DevOps25.github.io/team-dev_ops/swagger/ |
+
+You can still view the raw YAML locally or import it into tools like Postman, but the hosted docs stay up-to-date on every push.
 
 ## Development Workflow
 
@@ -116,48 +125,67 @@ The application uses PostgreSQL with pgvector extension for vector similarity se
 analysis (
     id UUID PRIMARY KEY,
     query TEXT NOT NULL,
-    type VARCHAR(50), -- 'Research' or 'Community'
+    type VARCHAR(50),   -- 'Research' or 'Community'
     feed_url TEXT NOT NULL,
     total_articles_processed INT,
     created_at TIMESTAMP
 )
 
--- Discovered topics with embeddings
+-- Discovered topics (one row per semantic cluster)
 topic (
     id UUID PRIMARY KEY,
-    analysis_id UUID → analysis(id),
+    analysis_id UUID REFERENCES analysis(id),
     title TEXT NOT NULL,
     description TEXT,
     article_count INT,
     relevance INT,
-    embedding vector(768), -- Google Gemini embeddings
+    embedding vector(768),  -- Google Gemini embeddings
     created_at TIMESTAMP
 )
 
--- Individual articles
+-- Individual articles (deduplicated by external_id)
 article (
     id UUID PRIMARY KEY,
-    topic_id UUID → topic(id),
-    analysis_id UUID → analysis(id),
+    analysis_id UUID REFERENCES analysis(id),
+    external_id TEXT NOT NULL,
     title TEXT NOT NULL,
     link TEXT NOT NULL,
     snippet TEXT,
-    content_hash VARCHAR(64), -- SHA-256 for deduplication
-    embedding vector(768), -- Content embeddings
-    created_at TIMESTAMP
+    content_hash VARCHAR(64),  -- SHA-256 for extra safety
+    embedding vector(768),
+    created_at TIMESTAMP,
+    UNIQUE (analysis_id, external_id)  -- no duplicate arXiv IDs per analysis
+)
+
+-- Many-to-many link between topics ↔ articles
+topic_article (
+    topic_id   UUID REFERENCES topic(id),
+    article_id UUID REFERENCES article(id),
+    PRIMARY KEY (topic_id, article_id)
 )
 ```
 
 **Vector Search Indexes:**
-- `topic_embedding_idx` - IVFFlat index for topic similarity search
-- `article_embedding_idx` - IVFFlat index for article similarity search
+* `topic_embedding_idx`   – IVFFlat index for fast topic similarity search
+* `article_embedding_idx` – IVFFlat index for article similarity search
 
-Complete schema: `services/spring-api/src/api-server/src/main/resources/db/migration/V1__unified_database_schema.sql`
+Complete DDL: `services/spring-api/src/main/resources/db/migration/V1__unified_database_schema.sql`
 
+# Automatic API documentation
 
+The OpenAPI specification ( `api/openapi.yaml` ) is converted into a static HTML
+site using **ReDoc**.  The bundled file lives in `docs/api.html`, so GitHub
+Pages can publish it automatically from the repository's `/docs` folder.
 
-**Kubernetes Deployment:**
-- Configure API keys and database credentials in .env file (using .env.example template)
-- Upload secrets to kubernetes using the command `kubectl create secret generic niche-explorer-secrets --from-env-file=./.env -n niche-explorer`
-   - If the secret name is different, also adapt it in the values.yml
-- In order to download the database files run `helm repo update` once.
+```bash
+# 1) Install once
+npx redoc-cli@latest --version   # should print the version
+
+# 2) Generate /docs/api.html whenever the spec changes
+redoc-cli bundle api/openapi.yaml -o docs/api.html
+
+```
+
+Tip: wire this into CI (e.g. a simple GitHub Actions workflow) so every push to
+`main` regenerates the docs and keeps the published API reference in sync.
+

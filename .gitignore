@@ -394,3 +394,20 @@ services/spring-api/.gradle/
 
 # Generated Spring server stub (not used in build)
 services/spring-api/src/api-server/
+
+# -------------------------
+# Project-specific ignores
+# -------------------------
+# Python virtual environments
+venv/
+services/*/venv/
+
+# Runtime logs
+log/
+services/*/log/
+
+# Local Chroma vector store (regenerated on demand)
+chroma_db/
+services/*/chroma_db/
+*.sqlite3
+*.bin
