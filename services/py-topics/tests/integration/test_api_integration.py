@@ -2,10 +2,9 @@ import pytest
 from fastapi.testclient import TestClient
 import os
 
-# This app import will now happen after the GENAI_BASE_URL is set by the conftest fixture
-from src.main import app
-
-client = TestClient(app)
+# The app and client are now initialized inside the test function to ensure
+# that the monkeypatched environment variable from the conftest.py fixture
+# is correctly applied before the service singleton is created.
 
 
 @pytest.mark.integration
@@ -18,6 +17,11 @@ def test_discover_topics_with_real_genai_service():
     # This key is passed to the py-genai container during the build
     if not os.getenv("GOOGLE_API_KEY"):
         pytest.skip("GOOGLE_API_KEY not found, skipping topics integration test.")
+
+    # Import and initialize here to use the patched environment
+    from src.main import app
+
+    client = TestClient(app)
 
     request_body = {
         "query": "Artificial Intelligence",

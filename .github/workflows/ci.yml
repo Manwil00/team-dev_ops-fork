@@ -135,7 +135,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: ['py-genai', 'py-topics', 'py-fetcher']
+        service: ['py-genai', 'py-fetcher']
     steps:
       - name: Download workspace with generated code
         uses: actions/download-artifact@v4

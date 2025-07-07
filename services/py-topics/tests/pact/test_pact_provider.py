@@ -63,13 +63,23 @@ class TestPyTopicsProvider:
         if not os.path.exists(PACT_FILE):
             pytest.fail(f"Pact file not found: {os.path.abspath(PACT_FILE)}")
 
-        # Mock the internal TopicDiscoveryService to isolate the provider from its dependency
+        # Mock the internal TopicDiscoveryService to isolate the provider from its dependency.
+        # The service instance in `main.py` is `topic_service`.
         mock_service_instance = mocker.patch(
-            "src.main.topic_discovery_service", new_callable=MagicMock
+            "src.main.topic_service", new_callable=MagicMock
         )
-        # The method called by the API is on the instance of the service
-        discover_mock = mock_service_instance.discover_topic
-        discover_mock.return_value = AsyncMock()  # It's an async method
+
+        # The `discover_topic` method is async, so we must use an AsyncMock.
+        mock_service_instance.discover_topic = AsyncMock()
+
+        # Configure a valid, deterministic response for the contract verification.
+        from niche_explorer_models.models.topic_discovery_response import (
+            TopicDiscoveryResponse,
+        )
+
+        mock_service_instance.discover_topic.return_value = TopicDiscoveryResponse(
+            query="pact-test", topics=[], total_articles_processed=0
+        )
 
         def topic_service_is_ready_to_discover_topics():
             # This provider state doesn't require special setup as the mock is already in place.
