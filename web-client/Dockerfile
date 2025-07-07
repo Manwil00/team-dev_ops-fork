@@ -5,11 +5,7 @@ WORKDIR /app
 
 # Copy package files and install dependencies
 COPY web-client/package*.json ./
-
-# Clean up npm before install
-RUN rm -rf node_modules package-lock.json
-
-RUN npm install
+RUN npm ci
 
 # Copy the entire web-client directory.
 # This assumes the API client has already been generated locally

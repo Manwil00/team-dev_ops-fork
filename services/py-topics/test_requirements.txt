@@ -1,0 +1,12 @@
+-r requirements.txt
+pytest
+pytest-cov
+pytest-asyncio
+pytest-mock
+pact-python==2.2.1
+testcontainers
+# Required for ML model mocking and data manipulation
+numpy
+scikit-learn
+hdbscan
+umap-learn 

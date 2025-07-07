@@ -52,6 +52,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.1'
     implementation 'org.openapitools:jackson-databind-nullable:0.2.1'
     implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
+    implementation 'io.swagger.core.v3:swagger-annotations:2.2.20'
+    implementation 'jakarta.servlet:jakarta.servlet-api:6.0.0'
 
     // Lombok annotations (compile-time only)
     compileOnly 'org.projectlombok:lombok:1.18.32'
@@ -62,6 +64,11 @@ dependencies {
     testImplementation 'io.projectreactor:reactor-test'
     testImplementation 'au.com.dius.pact.consumer:junit5:4.6.11'
     testImplementation 'au.com.dius.pact.core:model:4.6.11'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'
 }
 
 test {

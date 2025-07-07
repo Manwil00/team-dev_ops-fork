@@ -59,31 +59,46 @@ const AnalysisItem: React.FC<AnalysisItemProps> = ({
       };
     }
 
-    // Simple ArXiv category first (to avoid confusion with advanced queries)
-    if (feedUrl.match(/^cat:[a-z]+\.[A-Z]{2,}$/) || feedUrl.match(/^[a-z]+\.[A-Z]{2,}$/)) {
-      const category = feedUrl.startsWith('cat:') ? feedUrl.replace('cat:', '') : feedUrl;
+    // ------------------------------------------------------------
+    // Handle arXiv API URLs: extract and decode the search_query
+    // ------------------------------------------------------------
+    let queryPart: string | null = null;
+    const match = feedUrl.match(/[?&]search_query=([^&]+)/);
+    if (match && match[1]) {
+      queryPart = decodeURIComponent(match[1].replace(/\+/g, ' '));
+    }
+
+    // Fall back to raw URL if we did not find a query param (e.g., we stored cat:xyz directly)
+    if (!queryPart) {
+      queryPart = feedUrl;
+    }
+
+    // Simple ArXiv category (e.g., "cat:cs.CL" or "cs.CL")
+    if (queryPart.match(/^cat:[a-z]+\.[A-Z]{2,}$/) || queryPart.match(/^[a-z]+\.[A-Z]{2,}$/)) {
+      const category = queryPart.startsWith('cat:') ? queryPart.replace('cat:', '') : queryPart;
       return {
         type: 'ArXiv Category',
         details: category,
         queryType: 'simple',
-        category: category
+        category
       };
     }
 
-    // Check if it's an ArXiv advanced query (more complex patterns)
-    if (feedUrl.includes('all:') || feedUrl.includes('+AND+') || (feedUrl.includes('cat:') && (feedUrl.includes('+') || feedUrl.includes(' ')))) {
+    // Advanced arXiv query (contains cat: plus free-text via all:"…" or AND etc.)
+    if (queryPart.includes('all:') || queryPart.includes('AND') || (queryPart.includes('cat:') && queryPart.includes(' '))) {
       return {
         type: 'ArXiv Advanced Query',
-        details: feedUrl,
+        details: queryPart,
         queryType: 'advanced',
-        category: feedUrl.match(/cat:([^+\s]+)/)?.[1],
-        searchTerms: feedUrl.match(/all:"([^"]+)"/)?.[1]
+        category: queryPart.match(/cat:([^\s]+)/)?.[1],
+        searchTerms: queryPart.match(/all:(?:"([^"]+)"|([^\s]+))/)?.[1]
       };
     }
 
+    // Fallback – unknown query pattern
     return {
-      type: 'Unknown',
-      details: feedUrl,
+      type: 'Other',
+      details: queryPart,
       queryType: 'other'
     };
   };

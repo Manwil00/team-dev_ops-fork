@@ -1,5 +1,6 @@
 import os
 
+
 class GenAiSettings:
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY")
     APP_TITLE: str = "NicheExplorer GenAI Service"
@@ -9,5 +10,6 @@ class GenAiSettings:
 
     DEFAULT_RESEARCH_CATEGORY: str = "cs.CV"
     DEFAULT_COMMUNITY_FEED: str = "https://www.reddit.com/r/computervision/.rss"
+
 
 settings = GenAiSettings()

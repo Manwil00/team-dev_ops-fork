@@ -48,18 +48,20 @@ public class AnalysisService {
         // GET /analyses/{id} without receiving 404 while the async pipeline
         // (classification, fetching, clustering) is still in progress.
         try {
-            jdbcTemplate.update("INSERT INTO analysis (id, query, type, feed_url, total_articles_processed, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            jdbcTemplate.update("INSERT INTO analysis (id, query, type, feed_url, total_articles_processed, created_at, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     analysisId,
                     query,
                     "research",         // default temporary type avoids enum mismatch
                     "pending",          // temporary feed_url – will be updated
                     0,
-                    Timestamp.from(Instant.now()));
+                    Timestamp.from(Instant.now()),
+                    "PENDING");
         } catch (Exception e) {
             logger.warn("Could not pre-insert stub analysis row (may already exist): {}", e.getMessage());
         }
 
         orchestrationService.classifyQuery(query)
+                .doOnSuccess(classification -> jdbcTemplate.update("UPDATE analysis SET status = ? WHERE id = ?", "CLASSIFYING", analysisId))
                 .flatMap(classification -> {
                     // Initial save to DB
                     String analysisType = "research".equalsIgnoreCase(classification.getSourceType().getValue()) ? "research" : "community";
@@ -70,7 +72,9 @@ public class AnalysisService {
                     )).thenReturn(classification);
                 })
                 .flatMap(classification ->
-                        orchestrationService.fetchArticles(classification, query)
+                        orchestrationService.fetchArticles(classification, query,
+                                request.getMaxArticles() != null ? request.getMaxArticles() : 100)
+                                .doOnSuccess(response -> jdbcTemplate.update("UPDATE analysis SET status = ? WHERE id = ?", "FETCHING_ARTICLES", analysisId))
                                 .zipWith(Mono.just(classification))
                 )
                 .flatMap(tuple -> {
@@ -81,8 +85,8 @@ public class AnalysisService {
 
                     // Always update processed count
                     Mono<Void> dbUpdate = Mono.fromRunnable(() -> jdbcTemplate.update(
-                            "UPDATE analysis SET total_articles_processed = ? WHERE id = ?",
-                            articles.size(), analysisId));
+                            "UPDATE analysis SET total_articles_processed = ?, status = ? WHERE id = ?",
+                            articles.size(), "DISCOVERING_TOPICS", analysisId));
 
                     if (articles.isEmpty()) {
                         // Short-circuit: no articles means no topics.
@@ -93,13 +97,14 @@ public class AnalysisService {
                         return dbUpdate.then(Mono.just(emptyResp));
                     }
 
-                    Mono<TopicDiscoveryResponse> discoveryMono = orchestrationService.discoverTopics(query, articleIds, articles);
+                    Mono<TopicDiscoveryResponse> discoveryMono = orchestrationService.discoverTopics(query, articleIds, articles, request.getNrTopics(), request.getMinClusterSize());
 
                     return dbUpdate.then(discoveryMono);
                 })
                 .flatMap(discoveredTopics -> {
                     try {
                         saveAnalysisResults(analysisId, discoveredTopics);
+                        jdbcTemplate.update("UPDATE analysis SET status = ? WHERE id = ?", "COMPLETED", analysisId);
                         return Mono.empty();
                     } catch (JsonProcessingException e) {
                         return Mono.error(e);
@@ -107,7 +112,10 @@ public class AnalysisService {
                 })
                 .subscribe(
                         null, // onNext is not needed as we just want to trigger the chain
-                        error -> logger.error("Failed to complete analysis {}", analysisId, error),
+                        error -> {
+                            logger.error("Failed to complete analysis {}", analysisId, error);
+                            jdbcTemplate.update("UPDATE analysis SET status = ? WHERE id = ?", "FAILED", analysisId);
+                        },
                         () -> logger.info("Successfully completed analysis {}", analysisId)
                 );
     }
@@ -145,18 +153,35 @@ public class AnalysisService {
             );
 
             for (Article article : topic.getArticles()) {
-                UUID articleUuid;
+                // Upsert article once per analysis based on external_id
+                UUID articleRowId;
                 try {
-                    // Create deterministic UUID based on the raw (external) ID so duplicates are avoided
-                    articleUuid = UUID.nameUUIDFromBytes(article.getId().getBytes());
-                } catch (IllegalArgumentException ex) {
-                    articleUuid = UUID.randomUUID();
+                    articleRowId = jdbcTemplate.queryForObject(
+                            "INSERT INTO article (id, analysis_id, external_id, title, link, snippet) VALUES (?, ?, ?, ?, ?, ?) " +
+                                    "ON CONFLICT (analysis_id, external_id) DO UPDATE SET title = EXCLUDED.title RETURNING id",
+                            (rs, rowNum) -> UUID.fromString(rs.getString(1)),
+                            UUID.randomUUID(),
+                            analysisId,
+                            article.getId(),
+                            article.getTitle(),
+                            article.getLink().toString(),
+                            article.getSummary()
+                    );
+                } catch (Exception ex) {
+                    // Fallback: fetch existing id if upsert did not return
+                    articleRowId = jdbcTemplate.queryForObject(
+                            "SELECT id FROM article WHERE analysis_id = ? AND external_id = ?",
+                            UUID.class,
+                            analysisId,
+                            article.getId()
+                    );
                 }
 
+                // Link article to topic (many-to-many)
                 jdbcTemplate.update(
-                        "INSERT INTO article (id, topic_id, analysis_id, title, link, snippet) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING",
-                        articleUuid, UUID.fromString(topic.getId()), analysisId,
-                        article.getTitle(), article.getLink().toString(), article.getSummary()
+                        "INSERT INTO topic_article (topic_id, article_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+                        UUID.fromString(topic.getId()),
+                        articleRowId
                 );
             }
         }
@@ -187,7 +212,7 @@ public class AnalysisService {
         
         // Fetch and set articles for each topic
         topics.forEach(topic -> {
-            String articlesSql = "SELECT * FROM article WHERE topic_id = ?";
+            String articlesSql = "SELECT a.* FROM article a JOIN topic_article ta ON a.id = ta.article_id WHERE ta.topic_id = ?";
             List<Map<String, Object>> articles = jdbcTemplate.queryForList(articlesSql, UUID.fromString(topic.getId()));
             topic.setArticles(articles.stream().map(this::mapToArticle).collect(Collectors.toList()));
         });
@@ -217,6 +242,7 @@ public class AnalysisService {
             // Accept case-insensitive enum values (DB may contain legacy capitalized entries)
             String typeValue = rs.getString("type");
             response.setType(AnalysisResponse.TypeEnum.fromValue(typeValue.toLowerCase()));
+            response.setStatus(AnalysisResponse.StatusEnum.fromValue(rs.getString("status")));
             response.setFeedUrl(URI.create(rs.getString("feed_url")));
             response.setTotalArticlesProcessed(rs.getInt("total_articles_processed"));
             response.setCreatedAt(rs.getTimestamp("created_at").toInstant().atOffset(ZoneOffset.UTC));

@@ -10,6 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class QueryGenerationService:
     """Light-weight helper focused on the *generative* part of the GenAI layer.
 
@@ -66,10 +67,14 @@ class QueryGenerationService:
             return f"cat:{input_query}"
 
         # Mixed phrase containing category?
-        category_match = re.search(r"\b(cs\.[A-Z]{2}|math\.[A-Z]{2}|physics\.[a-z-]+)\b", input_query)
+        category_match = re.search(
+            r"\b(cs\.[A-Z]{2}|math\.[A-Z]{2}|physics\.[a-z-]+)\b", input_query
+        )
         if category_match:
             category = category_match.group(1)
-            terms = re.sub(r"\b(cs\.[A-Z]{2}|math\.[A-Z]{2}|physics\.[a-z-]+)\b", "", input_query)
+            terms = re.sub(
+                r"\b(cs\.[A-Z]{2}|math\.[A-Z]{2}|physics\.[a-z-]+)\b", "", input_query
+            )
             terms = self._extract_search_terms(terms.strip())
             return f'all:"{terms}"+AND+cat:{category}' if terms else f"cat:{category}"
 
@@ -129,7 +134,12 @@ class QueryGenerationService:
                 best_category = category
                 break
         search_terms = self._extract_search_terms(query)
-        return f'all:"{search_terms}"+AND+cat:{best_category}' if search_terms else f"cat:{best_category}"
+        return (
+            f'all:"{search_terms}"+AND+cat:{best_category}'
+            if search_terms
+            else f"cat:{best_category}"
+        )
+
 
 # Singleton – importable as `query_service`
 query_service = QueryGenerationService()

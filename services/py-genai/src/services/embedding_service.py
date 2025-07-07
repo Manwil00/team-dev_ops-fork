@@ -7,14 +7,18 @@ from ..settings import settings
 
 logger = logging.getLogger(__name__)
 
+
 class EmbeddingService:
     def __init__(self):
         self.embeddings_client = GoogleGenerativeAIEmbeddings(
-            model=settings.EMBEDDING_MODEL,
-            google_api_key=settings.GOOGLE_API_KEY
+            model=settings.EMBEDDING_MODEL, google_api_key=settings.GOOGLE_API_KEY
         )
-        self.db_client = chromadb.PersistentClient(path="/app/chroma_db")
-        self.collection = self.db_client.get_or_create_collection(name="arxiv_embeddings")
+        self.db_client = chromadb.PersistentClient(
+            path="./chroma_db", settings=chromadb.Settings(allow_reset=True)
+        )
+        self.collection = self.db_client.get_or_create_collection(
+            name="arxiv_embeddings"
+        )
 
     async def embed_text(self, text: str) -> List[float]:
         """Generates a single, non-cached embedding for a given text."""
@@ -39,11 +43,12 @@ class EmbeddingService:
 
         # Try to get existing embeddings from ChromaDB
         try:
-            cached_results = self.collection.get(
-                ids=ids,
-                include=["embeddings"]
-            )
-            cached_embeddings = {id: emb for id, emb in zip(cached_results['ids'], cached_results['embeddings']) if emb}
+            cached_results = self.collection.get(ids=ids, include=["embeddings"])
+            cached_embeddings = {
+                id: emb
+                for id, emb in zip(cached_results["ids"], cached_results["embeddings"])
+                if emb
+            }
             cached_count = len(cached_embeddings)
         except Exception:
             cached_embeddings = {}
@@ -68,7 +73,7 @@ class EmbeddingService:
                 self.collection.add(
                     embeddings=new_embeddings,
                     documents=new_texts,
-                    ids=[doc_id for _, doc_id in new_ids]
+                    ids=[doc_id for _, doc_id in new_ids],
                 )
             except Exception:
                 pass  # Continue even if caching fails
@@ -77,24 +82,22 @@ class EmbeddingService:
             for (idx, _), embedding in zip(new_ids, new_embeddings):
                 vectors[idx] = embedding
 
-        return {
-            "vectors": vectors,
-            "cached_count": cached_count
-        }
+        return {"vectors": vectors, "cached_count": cached_count}
 
     async def get_embeddings_by_ids(self, ids: List[str]) -> Dict:
         """Retrieve cached embeddings by IDs from ChromaDB"""
         try:
-            cached_results = self.collection.get(
-                ids=ids,
-                include=["embeddings"]
-            )
+            cached_results = self.collection.get(ids=ids, include=["embeddings"])
 
             embeddings = []
             found_count = 0
 
             # Create a map of cached embeddings
-            cached_map = {id: emb for id, emb in zip(cached_results['ids'], cached_results['embeddings']) if emb}
+            cached_map = {
+                id: emb
+                for id, emb in zip(cached_results["ids"], cached_results["embeddings"])
+                if emb
+            }
 
             # Return embeddings in the same order as requested IDs
             for doc_id in ids:
@@ -104,16 +107,10 @@ class EmbeddingService:
                 else:
                     embeddings.append([])  # Empty list for missing embeddings
 
-            return {
-                "embeddings": embeddings,
-                "found_count": found_count
-            }
+            return {"embeddings": embeddings, "found_count": found_count}
         except Exception as e:
             logger.error(f"Error retrieving embeddings by IDs: {e}")
-            return {
-                "embeddings": [[] for _ in ids],
-                "found_count": 0
-            }
+            return {"embeddings": [[] for _ in ids], "found_count": 0}
 
     def get_embeddings(self, articles: List[arxiv.Result]) -> Dict[str, List[float]]:
         """
@@ -126,9 +123,18 @@ class EmbeddingService:
 
         # 1. Try to get existing embeddings from the database
         try:
-            cached_results = self.collection.get(ids=article_ids, include=["embeddings"])
-            cached_ids = set(cached_results['ids'])
-            embeddings_map.update({id: emb for id, emb in zip(cached_results['ids'], cached_results['embeddings'])})
+            cached_results = self.collection.get(
+                ids=article_ids, include=["embeddings"]
+            )
+            cached_ids = set(cached_results["ids"])
+            embeddings_map.update(
+                {
+                    id: emb
+                    for id, emb in zip(
+                        cached_results["ids"], cached_results["embeddings"]
+                    )
+                }
+            )
             if cached_ids:
                 logger.info(f"Read {len(cached_ids)} embeddings from cache.")
         except Exception as e:
@@ -136,13 +142,19 @@ class EmbeddingService:
             cached_ids = set()
 
         # 2. Identify articles that need new embeddings
-        new_articles = [article for article in articles if article.get_short_id() not in cached_ids]
+        new_articles = [
+            article for article in articles if article.get_short_id() not in cached_ids
+        ]
 
         # 3. Generate and store embeddings for new articles
         if new_articles:
-            logger.info(f"Generating and storing embeddings for {len(new_articles)} new articles.")
+            logger.info(
+                f"Generating and storing embeddings for {len(new_articles)} new articles."
+            )
 
-            texts_to_embed = [f"{article.title} - {article.summary}" for article in new_articles]
+            texts_to_embed = [
+                f"{article.title} - {article.summary}" for article in new_articles
+            ]
             new_embeddings = self._embed_batch(texts_to_embed)
 
             new_article_ids = [article.get_short_id() for article in new_articles]
@@ -153,16 +165,24 @@ class EmbeddingService:
                     self.collection.add(
                         embeddings=new_embeddings,
                         documents=[f"{a.title} - {a.summary}" for a in new_articles],
-                        metadatas=[{"title": a.title, "link": str(a.links[0])} for a in new_articles],
-                        ids=new_article_ids
+                        metadatas=[
+                            {"title": a.title, "link": str(a.links[0])}
+                            for a in new_articles
+                        ],
+                        ids=new_article_ids,
                     )
-                    logger.info(f"Successfully stored {len(new_article_ids)} new embeddings.")
+                    logger.info(
+                        f"Successfully stored {len(new_article_ids)} new embeddings."
+                    )
                     # Add the newly created embeddings to our map
-                    embeddings_map.update({id: emb for id, emb in zip(new_article_ids, new_embeddings)})
+                    embeddings_map.update(
+                        {id: emb for id, emb in zip(new_article_ids, new_embeddings)}
+                    )
                 except Exception as e:
                     logger.error(f"Error storing new embeddings in ChromaDB: {e}")
 
         return embeddings_map
 
-# Singleton instance
-embedding_service = EmbeddingService()
+
+# No longer a singleton. Instances will be created where needed.
+# embedding_service = EmbeddingService()

@@ -24,14 +24,12 @@ src/
 │   ├── classification.py   # Query classification
 │   └── embedding.py       # Vector embedding operations
 ├── services/               # Core AI services
-│   ├── arxiv_service.py           # ArXiv API integration
 │   ├── embedding_service.py      # Google Gemini embeddings + ChromaDB
 │   ├── google_client.py          # Google Gemini API client
-│   └── openweb_client.py         # Open WebUI API integration
-├── models/                 # Data models and schemas
-│   └── schemas.py         # Pydantic models for API
-└── config/                 # Configuration management
-    └── settings.py        # Environment and model settings
+│   ├── openweb_client.py         # Open WebUI API integration
+│   └── query_generation_service.py # Generates queries for community data
+└── settings/                 # Configuration management
+    └── __init__.py        # Environment and model settings
 ```
 
 ## 🔄 Microservices Integration
@@ -53,16 +51,13 @@ src/
 ## 4 · Configuration & environment
 * `GOOGLE_API_KEY` – optional; unlocks Gemini embeddings.  If missing the service silently switches to the local Sentence-Transformer model.
 * `CHAIR_API_KEY` - necessary to use the models hosted by the chair. Currently this is only utilized for the /classify endpoint.
-* Processing limits such as `MAX_ARTICLES_PER_REQUEST` and `MIN_TREND_FREQUENCY` are centralised in `config/settings.py` and can be tuned without code changes.
-
 ---
 
 ## 5 · Public endpoints (no payloads shown)
-1. **POST `/classify`** – determines if query is "research" or "community" and suggests appropriate ArXiv category
-2. **POST `/arxiv/search`** – fetches research papers by ArXiv category or advanced query
-3. **POST `/embed`** – generates single embedding for text using Google Gemini
-4. **POST `/embed-batch`** – efficient batch embedding generation with ChromaDB caching
-5. **POST `/embeddings-by-ids`** – retrieves cached embeddings by paper IDs for Topic Discovery service
+1. **POST `/api/v1/classify`** – determines if query is "research" or "community" and suggests appropriate ArXiv category
+2. **POST `/api/v1/arxiv/search`** – fetches research papers by ArXiv category or advanced query
+3. **POST `/api/v1/embeddings`** – efficient batch embedding generation with ChromaDB caching
+4. **GET `/api/v1/embeddings`** – retrieves cached embeddings by paper IDs for Topic Discovery service
 
 ---
 

@@ -11,22 +11,9 @@ on:
 concurrency: ci-${{ github.ref }}
 
 jobs:
-  generate-and-test:
+  # New job to generate code once, before any tests are run.
+  setup:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service:
-          - name: spring-api
-            path: services/spring-api
-          - name: py-genai
-            path: services/py-genai
-          - name: py-topics
-            path: services/py-topics
-          - name: py-fetcher
-            path: services/py-fetcher
-          - name: web-client
-            path: web-client
-
     steps:
       - uses: actions/checkout@v4
 
@@ -36,18 +23,34 @@ jobs:
       - name: Install OpenAPI Generator CLI
         run: npm install -g @openapitools/openapi-generator-cli@latest
 
-      - name: Generate code
+      - name: Generate all API clients
         run: bash ./api/scripts/gen-all.sh
         shell: bash
 
-      - uses: actions/setup-java@v4
+      - name: Upload workspace artifact
+        uses: actions/upload-artifact@v4
         with:
-          distribution: 'temurin'
-          java-version: '21'
+          name: workspace-with-generated-code
+          path: .
 
-      - name: Setup Gradle
-        if: matrix.service.name == 'spring-api'
-        uses: gradle/actions/setup-gradle@v3
+  generate-and-test:
+    # This job now depends on the setup job.
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - { name: 'spring-api', path: 'services/spring-api' }
+          - { name: 'py-genai', path: 'services/py-genai' }
+          - { name: 'py-topics', path: 'services/py-topics' }
+          - { name: 'py-fetcher', path: 'services/py-fetcher' }
+          - { name: 'web-client', path: 'web-client' }
+
+    steps:
+      - name: Download workspace with generated code
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace-with-generated-code
 
       - name: Cache Maven / npm / pip
         uses: actions/cache@v4
@@ -58,53 +61,108 @@ jobs:
             ~/.npm
           key: ${{ runner.os }}-${{ hashFiles('**/lockfiles') }}
 
+      - name: Set up Java for Spring Boot
+        if: matrix.service.name == 'spring-api'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Gradle
+        if: matrix.service.name == 'spring-api'
+        uses: gradle/actions/setup-gradle@v3
+
       - name: Build & test
         working-directory: ${{ matrix.service.path }}
+        env:
+          CHAIR_API_KEY: ${{ secrets.CHAIR_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           case ${{ matrix.service.name }} in
             spring-api)
-              chmod +x gradlew && ./gradlew test
+              chmod +x gradlew && ./gradlew test --no-daemon
               ;;
-            py-fetcher)
+            py-fetcher|py-genai)
               pip install -r requirements.txt -r test_requirements.txt
-              # The contract test is run in the dedicated 'contract-test' job.
+              pip install ./generated
+              PYTHONPATH=src python -m pytest --ignore=tests/pact --ignore=tests/integration
               ;;
-            py-genai|py-topics)
-              pip install -r requirements.txt
-              # Still need to add tests
+            py-topics)
+              pip install -r requirements.txt -r test_requirements.txt
+              pip install --no-deps bertopic
+              pip install ./generated
+              PYTHONPATH=src python -m pytest --ignore=tests/pact --ignore=tests/integration
               ;;
             web-client)
-              rm -rf node_modules package-lock.json
-              npm install
+              npm ci
               npm run build
               # Still need to add tests
               ;;
           esac
 
   contract-test:
-    needs: generate-and-test
+    # This job is now much shorter as it reuses the setup from the first job.
+    needs: setup
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Download workspace with generated code
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace-with-generated-code
       
-      - uses: actions/setup-java@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
       
-      - uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
       
-      - name: Install OpenAPI Generator CLI
-        run: npm install -g @openapitools/openapi-generator-cli@latest
-      
-      - name: Generate code
-        run: bash ./api/scripts/gen-all.sh
-        shell: bash
-      
       - name: Run Pact contract tests
         run: bash ./api/scripts/run-pact.sh
+        env:
+          CHAIR_API_KEY: ${{ secrets.CHAIR_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+
+  integration-test:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: ['py-genai', 'py-fetcher']
+    steps:
+      - name: Download workspace with generated code
+        uses: actions/download-artifact@v4
+        with:
+          name: workspace-with-generated-code
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: services/${{ matrix.service }}
+        run: |
+          pip install -r requirements.txt -r test_requirements.txt
+          pip install ./generated
+          # py-topics uses testcontainers which requires the docker library
+          if [ "${{ matrix.service }}" = "py-topics" ]; then
+            pip install --no-deps bertopic
+            pip install docker
+          fi
+
+      - name: Run ${{ matrix.service }} integration tests
+        working-directory: services/${{ matrix.service }}
+        run: |
+          PYTHONPATH=src python -m pytest tests/integration
+        env:
+          # Provide all secrets to all jobs; unused ones will be ignored.
+          CHAIR_API_KEY: ${{ secrets.CHAIR_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
