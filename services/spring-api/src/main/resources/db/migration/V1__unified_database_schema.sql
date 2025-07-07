@@ -35,26 +35,32 @@ CREATE TABLE topic (
         FOREIGN KEY (analysis_id) REFERENCES analysis(id) ON DELETE CASCADE
 );
 
--- Create article table to store individual articles
+-- Create article table to store individual articles (deduplicated per analysis)
 CREATE TABLE article (
     id UUID PRIMARY KEY,
-    topic_id UUID NOT NULL,
     analysis_id UUID NOT NULL,
+    external_id TEXT NOT NULL,
     title TEXT NOT NULL,
     link TEXT NOT NULL,
     snippet TEXT,
-    content_hash VARCHAR(64), -- SHA-256 hash to prevent duplicates
     created_at TIMESTAMP DEFAULT now(),
     embedding vector(768), -- Vector embedding of article content
 
-    -- Foreign key relationships
-    CONSTRAINT fk_article_topic
-        FOREIGN KEY (topic_id) REFERENCES topic(id) ON DELETE CASCADE,
+    -- Foreign key relationship
     CONSTRAINT fk_article_analysis
         FOREIGN KEY (analysis_id) REFERENCES analysis(id) ON DELETE CASCADE,
 
-    -- Prevent duplicate articles per topic
-    CONSTRAINT unique_article_per_topic UNIQUE (topic_id, content_hash)
+    -- Ensure each external source article is stored once per analysis
+    CONSTRAINT unique_article_external UNIQUE (analysis_id, external_id)
+);
+
+-- Link table to associate articles with multiple topics (many-to-many)
+CREATE TABLE topic_article (
+    topic_id UUID NOT NULL,
+    article_id UUID NOT NULL,
+    PRIMARY KEY (topic_id, article_id),
+    CONSTRAINT fk_ta_topic FOREIGN KEY (topic_id) REFERENCES topic(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ta_article FOREIGN KEY (article_id) REFERENCES article(id) ON DELETE CASCADE
 );
 
 -- Performance indexes for analysis table
@@ -68,10 +74,12 @@ CREATE INDEX idx_topic_created_at ON topic(created_at DESC);
 CREATE INDEX idx_topic_relevance ON topic(relevance DESC);
 
 -- Performance indexes for article table
-CREATE INDEX idx_article_topic_id ON article(topic_id);
 CREATE INDEX idx_article_analysis_id ON article(analysis_id);
 CREATE INDEX idx_article_created_at ON article(created_at DESC);
-CREATE INDEX idx_article_content_hash ON article(content_hash);
+CREATE INDEX idx_article_external_id ON article(external_id);
+
+-- Link table index
+CREATE INDEX idx_ta_topic ON topic_article(topic_id);
 
 -- Vector similarity search indexes (using IVFFlat for cosine similarity)
 CREATE INDEX topic_embedding_idx ON topic USING ivfflat (embedding vector_cosine_ops)

@@ -35,8 +35,8 @@ async def discover_topics(request: TopicDiscoveryRequest):
             f"Received topic discovery request: query='{request.query}', {len(request.articles)} articles"
         )
 
-        # Use min_cluster_size from request or default
-        min_cluster_size = getattr(request, "min_cluster_size", 5)
+        # Use min_cluster_size from request or default (2)
+        min_cluster_size = getattr(request, "min_cluster_size", 2)
 
         # Discover topics using the service
         result = await topic_service.discover_topic(

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import StartExploringForm from './components/StartExploringForm';
 import AnalysisHistory from './components/AnalysisHistory';
@@ -8,10 +8,32 @@ import { AnalysisResponseStatusEnum } from "@/generated/api/models/analysis-resp
 
 // Use OpenAPI generated types directly - no local interfaces needed
 
+const statusMessages: Record<AnalysisResponseStatusEnum, string> = {
+  [AnalysisResponseStatusEnum.Pending]: 'Waiting in queue…',
+  [AnalysisResponseStatusEnum.Classifying]: 'Classifying query…',
+  [AnalysisResponseStatusEnum.FetchingArticles]: 'Fetching articles…',
+  [AnalysisResponseStatusEnum.EmbeddingArticles]: 'Embedding articles…',
+  [AnalysisResponseStatusEnum.DiscoveringTopics]: 'Discovering topics…',
+  [AnalysisResponseStatusEnum.Completed]: 'Completed',
+  [AnalysisResponseStatusEnum.Failed]: 'Failed',
+};
+
 function App() {
   const [analyses, setAnalyses] = useState<AnalysisResponse[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
+  const discoverStepRef = useRef<number>(0);
+  const lastDiscoverUpdateRef = useRef<number>(0);
+  const DISCOVER_STEP_INTERVAL_MS = 7000;
+  const prevStatusRef = useRef<AnalysisResponseStatusEnum | null>(null);
+
+  const discoveringMessages = [
+    'Starting topic clustering…',
+    'Extracting term frequencies…',
+    'Running BERTopic…',
+    'Generating topic representations…',
+    'Labelling topics with LLM…'
+  ];
 
   const handleAnalyze = async (req: AnalyzeRequest): Promise<void> => {
     return new Promise<void>(async (resolve) => {
@@ -19,13 +41,36 @@ function App() {
         setLoadingMessage('Starting analysis...');
         const analysisId = await analysisService.startAnalysis(req);
         const pollInterval = 2000;
-        const maxWaitMs = 120000;
+        const maxWaitMs = 600000; 
         const startTs = Date.now();
 
         const poll = async () => {
           try {
             const details = await analysisService.getAnalysis(analysisId);
-            setLoadingMessage(details.status as string || 'Polling...');
+            // Convert technical status to friendly text for the UI button
+            const friendly = statusMessages[details.status as AnalysisResponseStatusEnum] || 'Processing…';
+
+            if (details.status === AnalysisResponseStatusEnum.DiscoveringTopics) {
+              // If we just entered discovering state, reset step
+              if (prevStatusRef.current !== AnalysisResponseStatusEnum.DiscoveringTopics) {
+                discoverStepRef.current = 0;
+                lastDiscoverUpdateRef.current = Date.now();
+                setLoadingMessage(discoveringMessages[0]);
+              } else {
+                const now = Date.now();
+                if (now - lastDiscoverUpdateRef.current >= DISCOVER_STEP_INTERVAL_MS) {
+                  const next = Math.min(discoverStepRef.current + 1, discoveringMessages.length - 1);
+                  discoverStepRef.current = next;
+                  lastDiscoverUpdateRef.current = now;
+                  setLoadingMessage(discoveringMessages[next]);
+                }
+              }
+            } else {
+              setLoadingMessage(friendly);
+              discoverStepRef.current = 0;
+              lastDiscoverUpdateRef.current = 0;
+            }
+
             if (details.status === AnalysisResponseStatusEnum.Completed || details.status === AnalysisResponseStatusEnum.Failed) {
               const historyData = await analysisService.getAnalyses(20);
               setAnalyses(historyData);
@@ -33,6 +78,8 @@ function App() {
               resolve();
               return;
             }
+
+            prevStatusRef.current = details.status as AnalysisResponseStatusEnum;
           } catch (err) {
             console.error('Polling failed', err);
           }

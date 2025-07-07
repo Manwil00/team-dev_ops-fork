@@ -14,9 +14,8 @@ const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze, load
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [query, setQuery] = useState<string>("");
   const [autoDetect, setAutoDetect] = useState<boolean>(true);
-  const [maxArticles, setMaxArticles] = useState<number>(100);
+  const [maxArticles, setMaxArticles] = useState<number>(50);
   const [nrTopics, setNrTopics] = useState<number>(5);
-  const [minClusterSize, setMinClusterSize] = useState<number>(5);
   const [source, setSource] = useState<"research" | "community">("research");
   const [feed, setFeed] = useState<string>("cs.CV");
 
@@ -31,7 +30,6 @@ const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze, load
       auto_detect: autoDetect,
       max_articles: maxArticles,
       nr_topics: nrTopics,
-      min_cluster_size: minClusterSize,
     };
 
     if (!autoDetect) {
@@ -82,21 +80,19 @@ const StartExploringForm: React.FC<StartExploringFormProps> = ({ onAnalyze, load
             <SettingsForm
               autoDetect={autoDetect}
               maxArticles={maxArticles}
-              nrTopics={nrTopics}
-              minClusterSize={minClusterSize}
               query={query}
               source={source}
               feed={feed}
               onAutoDetectChange={setAutoDetect}
               onMaxArticlesChange={setMaxArticles}
-              onNrTopicsChange={setNrTopics}
-              onMinClusterSizeChange={setMinClusterSize}
               onSourceChange={setSource}
               onFeedChange={setFeed}
               onBackToInput={toggleSettings}
               onAnalyze={handleAnalyze}
               isLoading={isLoading}
               loadingMessage={loadingMessage}
+              nrTopics={nrTopics}
+              onNrTopicsChange={setNrTopics}
             />
           </div>
         )}

@@ -9,14 +9,12 @@ interface SettingsFormProps {
   autoDetect: boolean;
   maxArticles: number;
   nrTopics: number;
-  minClusterSize: number;
   query: string;
   source: "research" | "community";
   feed: string;
   onAutoDetectChange: (checked: boolean) => void;
   onMaxArticlesChange: (value: number) => void;
   onNrTopicsChange: (value: number) => void;
-  onMinClusterSizeChange: (value: number) => void;
   onSourceChange: (value: "research" | "community") => void;
   onFeedChange: (value: string) => void;
   onBackToInput: () => void;
@@ -29,14 +27,12 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
   autoDetect,
   maxArticles,
   nrTopics,
-  minClusterSize,
   query,
   source,
   feed,
   onAutoDetectChange,
   onMaxArticlesChange,
   onNrTopicsChange,
-  onMinClusterSizeChange,
   onSourceChange,
   onFeedChange,
   onBackToInput,
@@ -108,42 +104,38 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
           id="max-articles"
           type="number"
           min={1}
+          max={150}
           value={maxArticles}
-          onChange={(e) => onMaxArticlesChange(parseInt(e.target.value, 10) || 1)}
+          onChange={(e) => {
+            const raw = parseInt(e.target.value, 10);
+            const clamped = isNaN(raw) ? 1 : Math.min(150, Math.max(1, raw));
+            onMaxArticlesChange(clamped);
+          }}
           className="w-full"
         />
         <p className="text-sm text-muted-foreground">
-          Maximum number of articles to use for the analysis.
+          Maximum number of articles (1-150) to use for the analysis.
         </p>
       </div>
 
+      {/* Number of topics selection */}
       <div className="space-y-2">
-        <Label htmlFor="nr-topics">Number of topics</Label>
+        <Label htmlFor="nr-topics">Maximum number of topics</Label>
         <Input
-            id="nr-topics"
-            type="number"
-            min={1}
-            value={nrTopics}
-            onChange={(e) => onNrTopicsChange(parseInt(e.target.value, 10) || 1)}
-            className="w-full"
+          id="nr-topics"
+          type="number"
+          min={1}
+          max={7}
+          value={nrTopics}
+          onChange={(e) => {
+            const raw = parseInt(e.target.value, 10);
+            const clamped = isNaN(raw) ? 1 : Math.min(7, Math.max(1, raw));
+            onNrTopicsChange(clamped);
+          }}
+          className="w-full"
         />
         <p className="text-sm text-muted-foreground">
-          The number of topics to generate.
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="min-cluster-size">Minimum cluster size</Label>
-        <Input
-            id="min-cluster-size"
-            type="number"
-            min={1}
-            value={minClusterSize}
-            onChange={(e) => onMinClusterSizeChange(parseInt(e.target.value, 10) || 1)}
-            className="w-full"
-        />
-        <p className="text-sm text-muted-foreground">
-          The minimum number of articles a topic must have.
+          Upper limit (1–7). The algorithm may return fewer clusters if the data doesn&apos;t support more.
         </p>
       </div>
 
@@ -159,7 +151,6 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
               className="w-full border border-input rounded-md p-2"
             >
               <option value="research">Research (arXiv)</option>
-              <option value="community">Community (Reddit)</option>
             </select>
           </div>
 

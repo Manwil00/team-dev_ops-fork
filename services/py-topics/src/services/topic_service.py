@@ -19,6 +19,12 @@ logger = logging.getLogger(__name__)
 # Prompts for the LLM
 LABEL_PROMPT = "Your task is to create a concise, 5-word topic label. The topic is defined by these keywords: [KEYWORDS] and these documents: [DOCUMENTS]. Return ONLY the label itself, with no additional text or explanations."
 DESCRIPTION_PROMPT = "Your task is to write a two-sentence summary for a topic. The topic is defined by these keywords: [KEYWORDS] and these documents: [DOCUMENTS]. Return ONLY the two-sentence summary, with no additional text or explanations."
+# Combined prompt that requests both pieces in one go to reduce latency
+COMBINED_PROMPT = (
+    "You are given a topic described by these keywords: [KEYWORDS] and these documents: [DOCUMENTS]. "
+    "Return a concise JSON object with exactly two keys: 'label' — a 5-word title, and 'description' — a two-sentence summary. "
+    "Do NOT include any additional keys, formatting, markdown fences, or explanations."
+)
 
 
 class TopicDiscoveryService:
@@ -37,9 +43,9 @@ class TopicDiscoveryService:
         query: str,
         article_keys: list,
         articles: list,
-        min_cluster_size: int = 3,
+        min_cluster_size: int = 2,
         nr_topics: int | None = 5,
-        max_articles_per_topic: int = 75,
+        max_articles_per_topic: int = 40,
     ) -> TopicDiscoveryResponse:
         self.logger.info(f"Starting BERTopic discovery for {len(articles)} articles.")
         if not articles:
@@ -107,21 +113,124 @@ class TopicDiscoveryService:
                 title = self._clean_topic_title(generated_rep["label"])
                 description = generated_rep["description"]
                 topic_articles = articles_by_topic.get(topic_id, [])
-
-                response_topics.append(
-                    Topic(
-                        id=new_topic_id,
-                        title=title,
-                        description=description,
-                        article_count=len(topic_articles),
-                        relevance=int(topic_row.get("Relevance", 100)),
-                        articles=topic_articles[:max_articles_per_topic],
-                    )
+                relevance_score = (
+                    int(round(100 * len(topic_articles) / len(final_articles)))
+                    if final_articles
+                    else 100
                 )
+
+                # ------------------------------------------------------------
+                # Hierarchical sub-clustering: if a topic is still very large
+                # (> 10 articles) try to split it into finer sub-topics using
+                # a second BERTopic pass with smaller min_cluster_size.
+                # ------------------------------------------------------------
+                child_topics: list[Topic] = []
+                if len(topic_articles) > 10:
+                    child_docs = [
+                        f"{art.title} {art.summary or ''}".strip()
+                        for art in topic_articles
+                    ]
+
+                    try:
+                        # Use the same embeddings for these docs (slice by index)
+                        child_indices = [docs.index(d) for d in child_docs]
+                        child_embs = embeddings_array[child_indices]
+
+                        child_model = BERTopic(
+                            min_topic_size=2, nr_topics=None, verbose=False
+                        )
+                        child_model.fit_transform(child_docs, child_embs)
+
+                        child_info = child_model.get_topic_info()
+                        child_info = child_info[child_info.Topic != -1]
+
+                        # Map child topic id -> article list
+                        child_mapping: dict[int, list] = {}
+                        for idx, child_id in enumerate(child_model.topics_):
+                            if child_id == -1:
+                                continue
+                            child_mapping.setdefault(child_id, []).append(
+                                topic_articles[idx]
+                            )
+
+                        # Generate LLM-based representations for child topics
+                        child_tasks = [
+                            self._generate_representations_for_topic(
+                                child_model, row.Topic, child_docs
+                            )
+                            for _, row in child_info.iterrows()
+                        ]
+                        child_reps = await asyncio.gather(*child_tasks)
+                        child_rep_map = {rep["id"]: rep for rep in child_reps if rep}
+
+                        for _, child_row in child_info.iterrows():
+                            cid = child_row.Topic
+                            rep = child_rep_map.get(cid)
+                            c_articles = child_mapping.get(cid, [])
+
+                            title_c = self._clean_topic_title(
+                                rep["label"] if rep else child_row.Name
+                            )
+                            desc_c = (
+                                rep["description"]
+                                if rep
+                                else f"Sub-topic within '{title}'"
+                            )
+
+                            rel_child = (
+                                int(round(100 * len(c_articles) / len(final_articles)))
+                                if final_articles
+                                else 100
+                            )
+                            child_topics.append(
+                                Topic(
+                                    id=str(uuid.uuid4()),
+                                    title=title_c,
+                                    description=desc_c,
+                                    article_count=len(c_articles),
+                                    relevance=rel_child,
+                                    articles=c_articles[:max_articles_per_topic],
+                                )
+                            )
+                    except Exception as sub_e:
+                        self.logger.warning("Sub-clustering failed: %s", sub_e)
+
+                if child_topics:
+                    response_topics.extend(child_topics)
+                else:
+                    response_topics.append(
+                        Topic(
+                            id=new_topic_id,
+                            title=title,
+                            description=description,
+                            article_count=len(topic_articles),
+                            relevance=relevance_score,
+                            articles=topic_articles[:max_articles_per_topic],
+                        )
+                    )
+
+            # Re-compute relevance relative to the largest topic so the winner is 100%
+            if response_topics:
+                max_size = max(t.article_count for t in response_topics)
+                for t in response_topics:
+                    t.relevance = (
+                        int(round(100 * t.article_count / max_size))
+                        if max_size
+                        else 100
+                    )
 
             response_topics.sort(
                 key=lambda t: (t.relevance, t.article_count), reverse=True
             )
+
+            # Cap number of topics if caller requested a limit
+            if nr_topics is not None:
+                response_topics = response_topics[:nr_topics]
+            else:
+                # Heuristic: keep at most 10 most relevant clusters to avoid overload
+                if len(response_topics) > 10:
+                    response_topics = response_topics[:10]
+
             return TopicDiscoveryResponse(
                 query=query,
                 topics=response_topics,
@@ -150,14 +259,31 @@ class TopicDiscoveryService:
                     "description": "No description available.",
                 }
 
-            label_task = self._generate_text_from_llm(
-                LABEL_PROMPT, keywords, representative_docs
-            )
-            description_task = self._generate_text_from_llm(
-                DESCRIPTION_PROMPT, keywords, representative_docs
+            # Single LLM call requesting both label and description to cut latency
+            combined_json = await self._generate_text_from_llm(
+                COMBINED_PROMPT, keywords, representative_docs
             )
 
-            label, description = await asyncio.gather(label_task, description_task)
+            import json as _json
+
+            label = ""
+            description = ""
+            try:
+                # Strip potential markdown fences or code blocks
+                cleaned = combined_json.strip()
+                if cleaned.startswith("```"):
+                    cleaned = cleaned.strip("` ")
+                parsed = _json.loads(cleaned)
+                label = parsed.get("label", "")
+                description = parsed.get("description", "")
+            except Exception as parse_e:
+                self.logger.warning(
+                    "Failed to parse combined LLM output for topic %s: %s",
+                    topic_id,
+                    parse_e,
+                )
+                label = combined_json[:50]  # fallback first 50 chars
+                description = combined_json
 
             return {"id": topic_id, "label": label, "description": description}
         except Exception as e:

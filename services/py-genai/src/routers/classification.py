@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from niche_explorer_models.models.classify_request import ClassifyRequest
 from niche_explorer_models.models.classify_response import ClassifyResponse
 from ..services.openweb_client import OpenWebClient
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +20,14 @@ async def classify_query(request: ClassifyRequest):
             detail={"code": "INVALID_REQUEST", "message": "Query cannot be empty"},
         )
 
-    logger.info(f"Received classify request: query='{request.query}'")
-    response = openweb_client.classify_source(request.query)
+    generic_words = r"\b(?:current|latest|recent|research|study|studies|trend|trends|paper|papers)\b"
+    cleaned_query = re.sub(generic_words, "", request.query, flags=re.IGNORECASE)
+    cleaned_query = re.sub(r"\s+", " ", cleaned_query).strip()
+
+    logger.info(
+        f"Received classify request: original='{request.query}', cleaned='{cleaned_query}'"
+    )
+    response = openweb_client.classify_source(cleaned_query or request.query)
     logger.info(
         f"Parsed classification data: {response.source=}, {response.suggested_category=}"
     )

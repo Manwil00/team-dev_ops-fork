@@ -46,7 +46,7 @@ const TopicResult: React.FC<TopicResultProps> = ({
   const getRelevanceColor = (score: number) => {
     if (score >= 80) return darkMode ? 'bg-green-500' : 'bg-green-600';
     if (score >= 60) return darkMode ? 'bg-yellow-500' : 'bg-yellow-600';
-    if (score >= 40) return darkMode ? 'bg-orange-500' : 'bg-orange-600';
+    if (score >= 40) return darkMode ? 'bg-orange-500' : 'bg-yellow-600';
     return darkMode ? 'bg-red-500' : 'bg-red-600';
   };
 
@@ -139,12 +139,7 @@ const TopicResult: React.FC<TopicResultProps> = ({
                   </div>
                 );
               })
-            ) : (
-              <div className={`text-xs p-3 rounded-md ${darkMode ? 'bg-white/5' : 'bg-black/5'} border ${darkMode ? 'border-white/10' : 'border-black/5'} text-center`}>
-                <p className={`${darkMode ? 'text-white/60' : 'text-muted-foreground'}`}>No detailed articles available for this topic yet.</p>
-                <p className={`mt-1 text-xs ${darkMode ? 'text-white/40' : 'text-muted-foreground/70'}`}>Article details will appear here when available.</p>
-              </div>
-            )}
+            ) : null}
           </div>
         )}
       </div>

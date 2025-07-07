@@ -14,9 +14,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.openapitools.jackson.nullable.JsonNullableModule;
 import com.nicheexplorer.generated.invoker.ApiClient;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 
 import java.util.List;
 import java.util.Map;
@@ -45,11 +44,19 @@ public class AnalysisOrchestrationService {
 
         logger.info("Initializing WebClients: genai={}, fetcher={}, topics={}", genaiUrl, fetcherUrl, topicsUrl);
         this.genaiWebClient = webClientBuilder.baseUrl(genaiUrl).build();
-        this.fetcherWebClient = webClientBuilder.baseUrl(fetcherUrl).build();
+
+        ExchangeStrategies biggerBuffer = ExchangeStrategies.builder()
+                .codecs(conf -> conf.defaultCodecs().maxInMemorySize(4 * 1024 * 1024)) // 4 MB
+                .build();
+
+        this.fetcherWebClient = webClientBuilder
+                .baseUrl(fetcherUrl)
+                .exchangeStrategies(biggerBuffer)
+                .build();
         
-        // Custom WebClient for topic discovery with a longer timeout
         this.topicsWebClient = webClientBuilder.clone()
                 .baseUrl(topicsUrl)
+                .exchangeStrategies(biggerBuffer)
                 .build();
     }
 

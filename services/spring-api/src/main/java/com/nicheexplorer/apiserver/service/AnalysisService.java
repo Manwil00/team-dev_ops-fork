@@ -153,18 +153,35 @@ public class AnalysisService {
             );
 
             for (Article article : topic.getArticles()) {
-                UUID articleUuid;
+                // Upsert article once per analysis based on external_id
+                UUID articleRowId;
                 try {
-                    // Create deterministic UUID based on the raw (external) ID so duplicates are avoided
-                    articleUuid = UUID.nameUUIDFromBytes(article.getId().getBytes());
-                } catch (IllegalArgumentException ex) {
-                    articleUuid = UUID.randomUUID();
+                    articleRowId = jdbcTemplate.queryForObject(
+                            "INSERT INTO article (id, analysis_id, external_id, title, link, snippet) VALUES (?, ?, ?, ?, ?, ?) " +
+                                    "ON CONFLICT (analysis_id, external_id) DO UPDATE SET title = EXCLUDED.title RETURNING id",
+                            (rs, rowNum) -> UUID.fromString(rs.getString(1)),
+                            UUID.randomUUID(),
+                            analysisId,
+                            article.getId(),
+                            article.getTitle(),
+                            article.getLink().toString(),
+                            article.getSummary()
+                    );
+                } catch (Exception ex) {
+                    // Fallback: fetch existing id if upsert did not return
+                    articleRowId = jdbcTemplate.queryForObject(
+                            "SELECT id FROM article WHERE analysis_id = ? AND external_id = ?",
+                            UUID.class,
+                            analysisId,
+                            article.getId()
+                    );
                 }
 
+                // Link article to topic (many-to-many)
                 jdbcTemplate.update(
-                        "INSERT INTO article (id, topic_id, analysis_id, title, link, snippet) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING",
-                        articleUuid, UUID.fromString(topic.getId()), analysisId,
-                        article.getTitle(), article.getLink().toString(), article.getSummary()
+                        "INSERT INTO topic_article (topic_id, article_id) VALUES (?, ?) ON CONFLICT DO NOTHING",
+                        UUID.fromString(topic.getId()),
+                        articleRowId
                 );
             }
         }
@@ -195,7 +212,7 @@ public class AnalysisService {
         
         // Fetch and set articles for each topic
         topics.forEach(topic -> {
-            String articlesSql = "SELECT * FROM article WHERE topic_id = ?";
+            String articlesSql = "SELECT a.* FROM article a JOIN topic_article ta ON a.id = ta.article_id WHERE ta.topic_id = ?";
             List<Map<String, Object>> articles = jdbcTemplate.queryForList(articlesSql, UUID.fromString(topic.getId()));
             topic.setArticles(articles.stream().map(this::mapToArticle).collect(Collectors.toList()));
         });
