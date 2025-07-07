@@ -1,5 +1,5 @@
 import pytest
-import numpy as np
+import pandas as pd
 from unittest.mock import MagicMock, AsyncMock, patch
 from src.services.topic_service import TopicDiscoveryService
 from niche_explorer_models.models.article import Article
@@ -40,15 +40,15 @@ def mock_articles():
 
 
 @pytest.mark.asyncio
-@patch("src.services.topic_service.umap.UMAP")
-@patch("src.services.topic_service.hdbscan.HDBSCAN")
+@patch("src.services.topic_service.BERTopic")
+@patch("src.services.topic_service.CountVectorizer")
 async def test_discover_topic_happy_path(
-    mock_hdbscan, mock_umap, topic_service, mock_articles, mocker
+    mock_vectorizer, mock_bertopic, topic_service, mock_articles, mocker
 ):
     """
     Tests the main success path of the discover_topic method.
     - Mocks the GenAI embedding calls.
-    - Mocks UMAP and HDBSCAN.
+    - Mocks BERTopic and CountVectorizer.
     - Verifies that the orchestration logic works as expected.
     """
     # Arrange
@@ -64,19 +64,27 @@ async def test_discover_topic_happy_path(
     mock_http_client.get.return_value = mock_response
     mock_http_client.post.return_value = mock_response  # For fallback
 
-    # Mock the ML models
-    mock_umap.return_value.fit_transform.return_value = np.array(
-        [[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]
+    # Mock BERTopic and its chain of calls
+    mock_topic_model = MagicMock()
+    mock_topic_model.get_topic_info.return_value = pd.DataFrame(
+        {
+            "Topic": [0],
+            "Name": ["0_mock_topic"],
+            "Count": [3],
+            "Relevance": [100],
+        }
     )
-    mock_hdbscan.return_value.fit_predict.return_value = np.array(
-        [0, 0, 0]
-    )  # All in one cluster
-    mock_hdbscan.return_value.probabilities_ = np.array([0.9, 0.9, 0.9])
+    mock_topic_model.topics_ = [0, 0, 0]
+    mock_bertopic.return_value = mock_topic_model
 
     # Mock the topic info generation
     mocker.patch(
-        "src.services.topic_service.TopicDiscoveryService._generate_topic_info",
-        return_value={"title": "Mocked Topic", "description": "Mocked Description"},
+        "src.services.topic_service.TopicDiscoveryService._generate_representations_for_topic",
+        return_value={
+            "id": 0,
+            "label": "Mocked Topic",
+            "description": "Mocked Description",
+        },
     )
 
     # Act
@@ -88,9 +96,11 @@ async def test_discover_topic_happy_path(
     assert result.total_articles_processed == 3
     assert len(result.topics) == 1
     topic = result.topics[0]
-    assert topic.title == "Mocked Topic"
+    assert topic.title == "Mocked topic"
     assert topic.article_count == 3
-    assert topic.relevance == 100  # KMeans fast-path uses uniform probability of 1.0
+    assert topic.relevance == 100
+    mock_bertopic.assert_called_once()
+    mock_topic_model.fit_transform.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -109,7 +119,11 @@ async def test_discover_topic_no_articles(topic_service):
 
 
 @pytest.mark.asyncio
-async def test_embedding_fetch_fallback(topic_service, mock_articles, mocker):
+@patch("src.services.topic_service.BERTopic")
+@patch("src.services.topic_service.CountVectorizer")
+async def test_embedding_fetch_fallback(
+    mock_vectorizer, mock_bertopic, topic_service, mock_articles, mocker
+):
     """
     Tests that the service correctly falls back to POST /embeddings if GET fails.
     """
@@ -127,11 +141,15 @@ async def test_embedding_fetch_fallback(topic_service, mock_articles, mocker):
     mock_http_client.post.return_value = post_response
 
     # Mock out the rest of the pipeline
-    mocker.patch("src.services.topic_service.umap.UMAP")
-    mocker.patch("src.services.topic_service.hdbscan.HDBSCAN")
+    mock_topic_model = MagicMock()
+    mock_topic_model.get_topic_info.return_value = pd.DataFrame(
+        {"Topic": [], "Name": [], "Count": []}
+    )
+    mock_topic_model.topics_ = []
+    mock_bertopic.return_value = mock_topic_model
     mocker.patch(
-        "src.services.topic_service.TopicDiscoveryService._generate_topic_info",
-        return_value={"title": "t", "description": "d"},
+        "src.services.topic_service.TopicDiscoveryService._generate_representations_for_topic",
+        return_value={"id": 1, "label": "t", "description": "d"},
     )
 
     # Act

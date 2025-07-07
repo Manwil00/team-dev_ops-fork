@@ -18,6 +18,8 @@ def provider_service(monkeypatch):
     # Mock the GENAI_BASE_URL before the service starts
     monkeypatch.setenv("GENAI_BASE_URL", "http://mock-genai-service")
 
+    service_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
     process = subprocess.Popen(
         [
             "python",
@@ -31,6 +33,7 @@ def provider_service(monkeypatch):
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        cwd=service_root,
     )
 
     def _wait_for_service(url, timeout=30):
@@ -70,12 +73,6 @@ class TestPyTopicsProvider:
 
         def topic_service_is_ready_to_discover_topics():
             # This provider state doesn't require special setup as the mock is already in place.
-            # For a real scenario, you might configure specific return values here.
-            # For example:
-            # from niche_explorer_models.models import Topic, TopicDiscoveryResponse
-            # discover_mock.return_value = TopicDiscoveryResponse(
-            #     query="Test", topics=[Topic(id="1", title="Test Topic", ...)], ...
-            # )
             return True
 
         provider_states = {
