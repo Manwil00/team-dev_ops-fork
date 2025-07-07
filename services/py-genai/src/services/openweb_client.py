@@ -10,7 +10,7 @@ from langchain.llms.base import LLM
 from langchain_core.prompts import PromptTemplate
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from niche_explorer_models.models.classify_response import ClassifyResponse
-import httpx
+from fastapi import HTTPException
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -21,6 +21,7 @@ API_URL = "https://gpu.aet.cit.tum.de/api/chat/completions"
 
 if not CHAIR_API_KEY:
     raise RuntimeError("CHAIR_API_KEY missing in .env")
+
 
 class OpenWebUILLM(LLM):
     """
@@ -67,21 +68,24 @@ class OpenWebUILLM(LLM):
         }
 
         # Build messages for chat completion
-        messages = [
-            {"role": "user", "content": prompt}
-        ]
+        messages = [{"role": "user", "content": prompt}]
 
         payload = {
             "model": self.model_name,
             "messages": messages,
         }
 
+        # Add any additional generation parameters from the call
+        if "temperature" in kwargs:
+            payload["temperature"] = kwargs["temperature"]
+        if "max_tokens" in kwargs:
+            payload["max_tokens"] = kwargs["max_tokens"]
+        if "model" in kwargs:
+            payload["model"] = kwargs["model"]
+
         try:
             response = requests.post(
-                self.api_url,
-                headers=headers,
-                json=payload,
-                timeout=30
+                self.api_url, headers=headers, json=payload, timeout=30
             )
 
             response.raise_for_status()
@@ -101,6 +105,7 @@ class OpenWebUILLM(LLM):
         except (KeyError, IndexError, ValueError) as e:
             raise Exception(f"Failed to parse API response: {str(e)}")
 
+
 class OpenWebClient:
     def __init__(self):
         self.llm = OpenWebUILLM()
@@ -116,7 +121,7 @@ Return ONLY valid JSON with keys 'source', 'feed', and optional 'confidence'. **
    * reddit → subreddit name (MachineLearning, computervision …).
 
 When you build an advanced arXiv query:
-• Ignore generic stop-words such as: current, latest, recent, research, study, studies, trend, trends, paper, papers.
+• Ignore generic stop-words such as: current, latest, recent, research, study, studies, trend, trends, paper, papers, growing, growth.
 • Quote multi-word key phrases inside `all:"…"`.
 • Combine multiple key phrases with `+AND+` and always keep a `cat:<category>` filter.
 
@@ -125,7 +130,7 @@ Examples (JSON output):
 "graph neural networks in computer vision" → {{"source":"arxiv","feed":"all:graph+neural+network+AND+cat:cs.CV"}}
 "GPU buying advice"                    → {{"source":"reddit","feed":"hardware"}}
 
-User query: {query}"""
+User query: {query}""",
         )
         self.chain = self.prompt | self.llm
 
@@ -154,16 +159,47 @@ User query: {query}"""
 
             return ClassifyResponse(
                 source=data.get("source", "arxiv"),
-                source_type="research" if data.get("source", "arxiv") == "arxiv" else "community",
+                source_type="research"
+                if data.get("source", "arxiv") == "arxiv"
+                else "community",
                 suggested_category=suggested_cat,
-                confidence=data.get("confidence", 0.8)
+                confidence=data.get("confidence", 0.8),
             )
 
         except Exception as e:
-            logger.error(f"Failed to classify query: {e}, falling back to default values.")
+            logger.error(
+                f"Failed to classify query: {e}, falling back to default values."
+            )
             return ClassifyResponse(
                 source="arxiv",
                 source_type="research",
                 suggested_category="cs.CV",
-                confidence=0.5
+                confidence=0.5,
             )
+
+    def generate_text(
+        self, prompt: str, model_name: str, max_tokens: int, temperature: float
+    ) -> str:
+        """Generates text using the OpenWebUI LLM."""
+        try:
+            effective_model = model_name or self.llm.model_name
+            logger.info(
+                f"Using OpenWebUI for text generation with model {effective_model}"
+            )
+
+            params = {}
+            if temperature is not None:
+                params["temperature"] = temperature
+            if max_tokens is not None:
+                params["max_tokens"] = max_tokens
+            if model_name:
+                params["model"] = model_name
+
+            response = self.llm(prompt, **params)
+            return response
+        except Exception as e:
+            logger.error(f"Failed to generate text with OpenWebUI: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail={"code": "GENERATION_ERROR", "message": str(e)},
+            ) from e

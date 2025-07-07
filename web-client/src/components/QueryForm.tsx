@@ -11,6 +11,7 @@ interface QueryFormProps {
   onShowSettings: () => void;
   showSettings?: boolean;
   isLoading?: boolean;
+  loadingMessage?: string;
 }
 
 const QueryForm: React.FC<QueryFormProps> = ({
@@ -19,7 +20,8 @@ const QueryForm: React.FC<QueryFormProps> = ({
   onAnalyze,
   onShowSettings,
   showSettings = false,
-  isLoading = false
+  isLoading = false,
+  loadingMessage = "Discovering Topics..."
 }) => {
   return (
     <div className="space-y-4">
@@ -79,7 +81,7 @@ const QueryForm: React.FC<QueryFormProps> = ({
                 <BarChart3 className="h-4 w-4" />
               )}
               <span className="analyze-text relative">
-                {isLoading ? "Discovering Topics..." : "Analyze Trends"}
+                {isLoading ? loadingMessage : "Analyze Trends"}
                 <span className="analyze-underline"></span>
               </span>
             </Button>

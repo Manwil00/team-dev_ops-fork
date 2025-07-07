@@ -12,8 +12,7 @@ from urllib.parse import quote
 
 
 class ArxivFetcher:
-    """Fetch papers from arXiv.
-    """
+    """Fetch papers from arXiv."""
 
     def __init__(self, page_size: int = 100):
         """Create a client with sensible retry & throttling defaults.
@@ -24,22 +23,32 @@ class ArxivFetcher:
         transient network errors while still failing fast when the query itself
         is invalid.
         """
-        self.client = arxiv.Client(page_size=page_size, num_retries=3, delay_seconds=1.0)
+        self.client = arxiv.Client(
+            page_size=page_size, num_retries=3, delay_seconds=1.0
+        )
 
     async def fetch(self, query: str, max_results: int = 50) -> List[Article]:
         import logging
+
         logger = logging.getLogger(__name__)
 
         try:
             search = arxiv.Search(query=query, max_results=max_results)
             results = list(self.client.results(search))
         except arxiv.ArxivError as err:
-            logger.warning("arxiv library error for '%s' – %s. Falling back to HTTP API.", query, err)
+            logger.warning(
+                "arxiv library error for '%s' – %s. Falling back to HTTP API.",
+                query,
+                err,
+            )
             results = []
 
         # If the primary attempt yielded no results, fall back to direct HTTP API call.
         if len(results) == 0:
-            logger.info("No arxiv-library results for '%s'. Falling back to export.arxiv.org API", query)
+            logger.info(
+                "No arxiv-library results for '%s'. Falling back to export.arxiv.org API",
+                query,
+            )
             return await self._fetch_via_http_api(query, max_results)
 
         return [self._map_result(r) for r in results]
@@ -61,7 +70,7 @@ class ArxivFetcher:
             summary=res.summary,
             authors=[a.name for a in res.authors],
             published=published,
-            source="arxiv"
+            source="arxiv",
         )
 
     # ------------------------------------------------------------------
@@ -91,7 +100,9 @@ class ArxivFetcher:
             published = None
             if hasattr(entry, "published"):
                 try:
-                    published = datetime.strptime(entry.published, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+                    published = datetime.strptime(
+                        entry.published, "%Y-%m-%dT%H:%M:%SZ"
+                    ).replace(tzinfo=timezone.utc)
                 except Exception:
                     published = None
 
@@ -101,11 +112,14 @@ class ArxivFetcher:
                     title=entry.title,
                     link=entry.id,
                     summary=entry.summary,
-                    authors=[a.name for a in entry.authors] if hasattr(entry, "authors") else [],
+                    authors=[a.name for a in entry.authors]
+                    if hasattr(entry, "authors")
+                    else [],
                     published=published,
                     source="arxiv",
                 )
             )
         return articles
+
 
 arxiv_fetcher = ArxivFetcher()

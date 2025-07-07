@@ -395,6 +395,24 @@ services/spring-api/.gradle/
 # Generated Spring server stub (not used in build)
 services/spring-api/src/api-server/
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+
+# Database
+chroma_db/
+*.sqlite3
+
+# Logs
+log/
+logs/
+*.log
+
 # -------------------------
 # Project-specific ignores
 # -------------------------

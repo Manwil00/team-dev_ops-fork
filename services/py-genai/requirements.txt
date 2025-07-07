@@ -1,11 +1,13 @@
-fastapi==0.110.0
-uvicorn[standard]==0.29.0
-pydantic==1.10.14
+fastapi
+uvicorn[standard]
+pydantic
+langchain
+langchain-google-genai
 chromadb==0.4.24
-google-generativeai<0.4.0
-langchain==0.1.17
-feedparser==6.0.11
-langchain-google-genai==0.0.9
-arxiv==1.4.8
+arxiv
 requests
+google-generativeai
+python-dotenv
+httpx
+numpy<2.0
 

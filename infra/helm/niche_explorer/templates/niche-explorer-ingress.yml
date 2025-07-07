@@ -1,27 +1,26 @@
-# Template taken from: https://github.com/Mtze/kubernetes-templates/
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: "niche-explorer-ingress"
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    traefik.ingress.kubernetes.io/router.entrypoints: web
 spec:
+  ingressClassName: traefik
   rules:
-  - host: "{{.Values.ingress.student_id}}{{.Values.ingress.base_host}}" #FIXME e.g. example.mtze.me
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ .Values.ui.name }}
-            port:
-              number: {{ .Values.ui.port }}
-
-      - path: /api
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ .Values.service.api.name }}
-            port:
-              number: {{ .Values.service.api.port }}
+    - host: "{{ .Values.ingress.student_id }}{{ .Values.ingress.base_host }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.ui.name }}
+                port:
+                  number: {{ .Values.ui.port }}
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.service.api.name }}
+                port:
+                  number: {{ .Values.service.api.port }}

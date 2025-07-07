@@ -14,21 +14,12 @@ security: []
 
 # Default servers - tools will show all when no specific server is selected
 servers:
-  - url: http://ge74tif.student.k8s.aet.cit.tum.de:8080
-    description: Spring API Gateway - Main orchestration endpoints
-  - url: http://ge74tif.student.k8s.aet.cit.tum.de:8000  
-    description: GenAI Service - AI classification and embeddings
-  - url: http://ge74tif.student.k8s.aet.cit.tum.de:8200
-    description: Article Fetcher Service - Content retrieval
-  - url: http://ge74tif.student.k8s.aet.cit.tum.de:8100
-    description: Topic Discovery Service - Clustering and analysis
+  - url: /
+    description: API Gateway - All requests are routed through the gateway.
 
 paths:
   # Spring API Gateway endpoints (ge74tif.student.k8s.aet.cit.tum.de:8080)
   /api/v1/analyses:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8080
-        description: Spring API Gateway
     post:
       tags: [Analysis]
       summary: Launch analysis job
@@ -49,8 +40,18 @@ paths:
               schema:
                 type: string
               description: URL of the newly created analysis resource.
-        "400": { description: Invalid request }
-        "500": { description: Internal error }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     get:
       tags: [Analysis]
       summary: List analyses (paginated)
@@ -80,15 +81,18 @@ paths:
                     type: array
                     items: { $ref: '#/components/schemas/AnalysisResponse' }
                 required: [total, limit, offset, items]
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/v1/analyses/{id}:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8080
-        description: Spring API Gateway
     get:
       tags: [Analysis]
       summary: Poll analysis status
-      description: Returns **200** with full result when the analysis is finished, or **202** while still running.
+      description: Returns **200** with full result. The `status` field indicates whether the analysis is complete, in-progress or has failed.
       operationId: getAnalysis
       parameters:
         - name: id
@@ -97,13 +101,22 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         "200":
-          description: Analysis complete
+          description: Analysis status and result.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AnalysisResponse' }
-        "202":
-          description: Analysis still in progress
-        "404": { description: Analysis not found }
+        "404":
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
       tags: [Analysis]
       summary: Delete analysis
@@ -122,13 +135,15 @@ paths:
         "403":
           description: Forbidden
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        "404": { description: Analysis not found }
+        "404":
+          description: Analysis not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   # GenAI Service endpoints (ge74tif.student.k8s.aet.cit.tum.de:8000)
   /api/v1/classify:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8000
-        description: GenAI Service
     post:
       tags: [AI]
       summary: Classify query intent (research vs community)
@@ -148,11 +163,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ClassifyResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/v1/embeddings:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8000
-        description: GenAI Service
     post:
       tags: [AI]
       summary: Generate embeddings
@@ -171,6 +195,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmbeddingResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     get:
       tags: [AI]
       summary: Retrieve cached embeddings
@@ -194,11 +230,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmbeddingResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/v1/query/build/{source}:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8000
-        description: GenAI Service
     post:
       tags: [AI]
       summary: Build source-specific query
@@ -225,12 +270,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QueryBuilderResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/generate/text:
+    post:
+      tags: [AI]
+      summary: Generate text using a large language model
+      description: |
+        Takes a prompt and returns a generated text from a specified Large Language Model (e.g., Gemini, OpenRouter).
+        This can be used for various generative tasks like summarizing topics, creating labels, or answering questions based on provided context.
+        The prompt can contain placeholders like `[DOCUMENTS]` and `[KEYWORDS]` which should be replaced by the caller.
+      operationId: generateText
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateTextRequest'
+      responses:
+        "200":
+          description: Successfully generated text
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateTextResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   # Article Fetcher Service endpoints (ge74tif.student.k8s.aet.cit.tum.de:8200)
   /api/v1/articles:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8200
-        description: Article Fetcher Service
     post:
       tags: [Articles]
       summary: Fetch articles
@@ -249,11 +338,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ArticleFetchResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /api/v1/sources/{source}/categories:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8200
-        description: Article Fetcher Service
     get:
       tags: [Articles]
       summary: Get source categories
@@ -278,12 +376,15 @@ paths:
                   type: array
                   items:
                     type: string
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   # Topic Discovery Service endpoints (ge74tif.student.k8s.aet.cit.tum.de:8100)
   /api/v1/topics/discover:
-    servers:
-      - url: http://ge74tif.student.k8s.aet.cit.tum.de:8100
-        description: Topic Discovery Service
     post:
       tags: [Topics]
       summary: Discover topics
@@ -302,6 +403,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TopicDiscoveryResponse'
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 components:
   schemas:
@@ -337,6 +450,41 @@ components:
           maximum: 1
           description: Confidence score for the classification (0-1)
       required: [source, source_type, suggested_category]
+
+    GenerateTextRequest:
+      type: object
+      properties:
+        prompt:
+          type: string
+          description: The prompt to send to the LLM. Can include placeholders like [DOCUMENTS] and [KEYWORDS].
+        model:
+          type: string
+          description: "The model to use for generation. Defaults to the service's configured model."
+          example: "gemini-pro"
+        max_tokens:
+          type: integer
+          description: "Maximum number of tokens to generate."
+          default: 256
+        temperature:
+          type: number
+          format: float
+          description: "Controls randomness. Lower is more deterministic."
+          default: 0.7
+      required: [prompt]
+
+    GenerateTextResponse:
+      type: object
+      properties:
+        text:
+          type: string
+          description: The generated text.
+        model:
+          type: string
+          description: The model that was used for generation.
+        prompt:
+          type: string
+          description: The prompt that was used for generation.
+      required: [text, model, prompt]
 
     EmbeddingRequest:
       type: object
@@ -520,8 +668,12 @@ components:
           description: Article metadata
         min_cluster_size:
           type: integer
-          default: 3
+          default: 2
           description: Minimum articles per topic
+        nr_topics:
+          type: integer
+          nullable: true
+          description: The desired number of topics to be generated. Set to null for automatic topic number reduction.
       required: [query, article_ids, articles]
 
     Topic:
@@ -580,14 +732,22 @@ components:
           description: Auto-detect the best source when `source` is omitted.
         max_articles:
           type: integer
-          default: 50
+          default: 100
           minimum: 1
-          maximum: 100
           description: Cap on number of articles processed.
+        nr_topics:
+          type: integer
+          default: 5
+          minimum: 1
+          description: The desired number of topics to be generated.
+        min_cluster_size:
+          type: integer
+          default: 2
+          minimum: 1
+          description: Minimum articles per topic.
         source:
           type: string
           enum: [arxiv, reddit]
-          description: Manual source override.
         category:
           type: string
           description: Manual category/feed override.
@@ -600,6 +760,10 @@ components:
           type: string
           format: uuid
           description: Analysis ID
+        status:
+          type: string
+          enum: [PENDING, CLASSIFYING, FETCHING_ARTICLES, EMBEDDING_ARTICLES, DISCOVERING_TOPICS, COMPLETED, FAILED]
+          description: Current status of the analysis
         query:
           type: string
           description: Original query
@@ -622,13 +786,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Topic'
-      required: [id, query, type, feed_url, total_articles_processed, created_at, topics]
+      required: [id, query, type, feed_url, total_articles_processed, created_at, topics, status]
 
     Error:
       type: object
       properties:
         code: { type: string }
         message: { type: string }
+        details:
+          type: object
+          additionalProperties: true
+          description: Optional structured details about the error
       required: [code, message]
 
   securitySchemes: {}
