@@ -43,14 +43,11 @@ bash api/scripts/gen-all.sh
 # Deployment from project root:
 docker compose --env-file ./.env -f infra/docker-compose.yml up --build -d
 
-# ===================================================================
-# Using traefik:
 # - Local development (uses override with hard-coded localhost rules)
-docker compose --env-file ./.env -f infra/traefik_compose_variants/docker-compose.yml -f infra/traefik_compose_variants/docker-compose.override.yml up --build -d
+docker compose --env-file ./.env -f infra/docker-compose.yml -f infra/docker-compose.override.yml up --build -d
 
 # - Server / production deployment
-docker compose --env-file ./.env -f infra/traefik_compose_variants/docker-compose.yml up --build -d
-# ====================================================================
+docker compose --env-file ./.env -f infra/docker-compose.yml up --build -d
 
 Access the application at: http://localhost
 Traefik dashboard: http://localhost:8080/dashboard/
