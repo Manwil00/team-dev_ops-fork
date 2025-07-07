@@ -40,13 +40,10 @@ cp .env.example .env
 # Generate OpenAPI client libraries
 bash api/scripts/gen-all.sh
 
-# Deployment from project root:
-docker compose --env-file ./.env -f infra/docker-compose.yml up --build -d
-
-# - Local development (uses override with hard-coded localhost rules)
+# Local development (uses override with hard-coded localhost rules)
 docker compose --env-file ./.env -f infra/docker-compose.yml -f infra/docker-compose.override.yml up --build -d
 
-# - Server / production deployment
+# Server / production deployment
 docker compose --env-file ./.env -f infra/docker-compose.yml up --build -d
 
 Access the application at: http://localhost
@@ -97,6 +94,48 @@ Generated code is version-controlled in `generated/` directories. Docker images 
 - Faster container builds
 - Consistent client libraries across environments
 - Offline development capability
+
+# Automatic API documentation
+
+The OpenAPI specification (`api/openapi.yaml`) is automatically rendered to static HTML using **ReDoc** and bundled Swagger UI:
+
+| Format | URL |
+| ------ | --- |
+| ReDoc  | https://AET-DevOps25.github.io/team-dev_ops/api.html |
+| Swagger UI | https://AET-DevOps25.github.io/team-dev_ops/swagger/ |
+
+The `docs` GitHub Pages site is built by the workflow in `.github/workflows/docs.yml` every time `api/openapi.yaml` changes (or when you trigger the workflow manually).  Behind the scenes the job:
+
+1. Installs `redoc-cli` and `swagger-ui-dist`
+2. Generates `docs/api.html` (ReDoc)
+3. Copies Swagger UI into `docs/swagger/` and points it to the local spec
+4. Uploads the folder as a Pages artifact which the **Deploy Pages** action publishes
+
+### View locally
+
+```bash
+# Install once
+npm i -g redoc-cli swagger-ui-dist http-server
+
+# Generate docs
+redoc-cli bundle api/openapi.yaml -o docs/api.html
+
+# Serve locally at http://localhost:8088
+http-server docs -p 8088
+```
+
+### Trigger a fresh build
+
+If you need to regenerate the published docs without touching the spec, push an empty commit:
+
+```bash
+git commit --allow-empty -m "docs: trigger Pages build"
+git push origin main
+```
+
+> **Tip** – GitHub caches Pages aggressively. If you don't see new content, hard-refresh (Ctrl + Shift + R) or append `?t=$(date +%s)` to the URL.
+
+---
 
 
 ```
@@ -172,22 +211,4 @@ topic_article (
 * `article_embedding_idx` – IVFFlat index for article similarity search
 
 Complete DDL: `services/spring-api/src/main/resources/db/migration/V1__unified_database_schema.sql`
-
-# Automatic API documentation
-
-The OpenAPI specification ( `api/openapi.yaml` ) is converted into a static HTML
-site using **ReDoc**.  The bundled file lives in `docs/api.html`, so GitHub
-Pages can publish it automatically from the repository's `/docs` folder.
-
-```bash
-# 1) Install once
-npx redoc-cli@latest --version   # should print the version
-
-# 2) Generate /docs/api.html whenever the spec changes
-redoc-cli bundle api/openapi.yaml -o docs/api.html
-
-```
-
-Tip: wire this into CI (e.g. a simple GitHub Actions workflow) so every push to
-`main` regenerates the docs and keeps the published API reference in sync.
 

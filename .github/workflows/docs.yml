@@ -41,8 +41,20 @@ jobs:
           cp -R "$SWAGGER_DIST"/* docs/swagger/
           # Copy spec next to the viewer
           cp api/openapi.yaml docs/swagger/openapi.yaml
-          # Rewrite default index to load local spec
-          sed -i 's|https://petstore.swagger.io/v2/swagger.json|openapi.yaml|' docs/swagger/index.html
+          # Replace default initializer with one that loads our spec
+          cat > docs/swagger/swagger-initializer.js <<'EOF'
+          window.onload = function() {
+            window.ui = SwaggerUIBundle({
+              url: "openapi.yaml",
+              dom_id: '#swagger-ui',
+              presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIBundle.SwaggerUIStandalonePreset
+              ],
+              layout: "BaseLayout"
+            });
+          };
+          EOF
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
