@@ -4,16 +4,19 @@ import StartExploringForm from './components/StartExploringForm';
 import AnalysisHistory from './components/AnalysisHistory';
 import { AspectRatio } from "./components/ui/aspect-ratio";
 import { analysisService, AnalyzeRequest, AnalysisResponse } from "./services/analysis";
+import { AnalysisResponseStatusEnum } from "@/generated/api/models/analysis-response";
 
 // Use OpenAPI generated types directly - no local interfaces needed
 
 function App() {
   const [analyses, setAnalyses] = useState<AnalysisResponse[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState<string>('');
 
   const handleAnalyze = async (req: AnalyzeRequest): Promise<void> => {
     return new Promise<void>(async (resolve) => {
       try {
+        setLoadingMessage('Starting analysis...');
         const analysisId = await analysisService.startAnalysis(req);
         const pollInterval = 2000;
         const maxWaitMs = 120000;
@@ -22,9 +25,11 @@ function App() {
         const poll = async () => {
           try {
             const details = await analysisService.getAnalysis(analysisId);
-            if ((details.topics as any)?.length > 0) {
+            setLoadingMessage(details.status as string || 'Polling...');
+            if (details.status === AnalysisResponseStatusEnum.Completed || details.status === AnalysisResponseStatusEnum.Failed) {
               const historyData = await analysisService.getAnalyses(20);
               setAnalyses(historyData);
+              setLoadingMessage('');
               resolve();
               return;
             }
@@ -34,6 +39,7 @@ function App() {
           if (Date.now() - startTs < maxWaitMs) {
             setTimeout(poll, pollInterval);
           } else {
+            setLoadingMessage('');
             resolve();
           }
         };
@@ -42,6 +48,7 @@ function App() {
       } catch (err) {
         console.error('Analysis failed', err);
         alert('Failed to start analysis. Please try again.');
+        setLoadingMessage('');
         resolve();
       }
     });
@@ -97,7 +104,7 @@ function App() {
 
         <main className="container mx-auto py-8 px-4 max-w-4xl">
           <div className="space-y-8">
-            <StartExploringForm onAnalyze={handleAnalyze} />
+            <StartExploringForm onAnalyze={handleAnalyze} loadingMessage={loadingMessage} />
 
             <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 border border-black/10">
               <h2 className="text-xl font-semibold mb-4">Analysis History</h2>

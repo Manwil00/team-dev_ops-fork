@@ -92,7 +92,7 @@ paths:
     get:
       tags: [Analysis]
       summary: Poll analysis status
-      description: Returns **200** with full result when the analysis is finished, or **202** while still running.
+      description: Returns **200** with full result. The `status` field indicates whether the analysis is complete, in-progress or has failed.
       operationId: getAnalysis
       parameters:
         - name: id
@@ -101,12 +101,10 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         "200":
-          description: Analysis complete
+          description: Analysis status and result.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/AnalysisResponse' }
-        "202":
-          description: Analysis still in progress
         "404":
           description: Analysis not found
           content:
@@ -670,8 +668,12 @@ components:
           description: Article metadata
         min_cluster_size:
           type: integer
-          default: 3
+          default: 5
           description: Minimum articles per topic
+        nr_topics:
+          type: integer
+          nullable: true
+          description: The desired number of topics to be generated. Set to null for automatic topic number reduction.
       required: [query, article_ids, articles]
 
     Topic:
@@ -730,14 +732,22 @@ components:
           description: Auto-detect the best source when `source` is omitted.
         max_articles:
           type: integer
-          default: 50
+          default: 100
           minimum: 1
-          maximum: 100
           description: Cap on number of articles processed.
+        nr_topics:
+          type: integer
+          default: 5
+          minimum: 1
+          description: The desired number of topics to be generated.
+        min_cluster_size:
+          type: integer
+          default: 5
+          minimum: 1
+          description: Minimum articles per topic.
         source:
           type: string
           enum: [arxiv, reddit]
-          description: Manual source override.
         category:
           type: string
           description: Manual category/feed override.
@@ -750,6 +760,10 @@ components:
           type: string
           format: uuid
           description: Analysis ID
+        status:
+          type: string
+          enum: [PENDING, CLASSIFYING, FETCHING_ARTICLES, EMBEDDING_ARTICLES, DISCOVERING_TOPICS, COMPLETED, FAILED]
+          description: Current status of the analysis
         query:
           type: string
           description: Original query
@@ -772,7 +786,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Topic'
-      required: [id, query, type, feed_url, total_articles_processed, created_at, topics]
+      required: [id, query, type, feed_url, total_articles_processed, created_at, topics, status]
 
     Error:
       type: object

@@ -118,7 +118,7 @@ public class AnalysisOrchestrationServiceTest {
                 .suggestedCategory("cs.AI");
 
         // Act
-        Mono<ArticleFetchResponse> responseMono = orchestrationService.fetchArticles(classification, "test query");
+        Mono<ArticleFetchResponse> responseMono = orchestrationService.fetchArticles(classification, "test query", 100);
 
         // Assert
         StepVerifier.create(responseMono)

@@ -3,46 +3,58 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { BarChart3, ChevronDown, ChevronUp } from "lucide-react";
+import { BarChart3, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 
 interface SettingsFormProps {
   autoDetect: boolean;
   maxArticles: number;
+  nrTopics: number;
+  minClusterSize: number;
   query: string;
   source: "research" | "community";
   feed: string;
   onAutoDetectChange: (checked: boolean) => void;
   onMaxArticlesChange: (value: number) => void;
+  onNrTopicsChange: (value: number) => void;
+  onMinClusterSizeChange: (value: number) => void;
   onSourceChange: (value: "research" | "community") => void;
   onFeedChange: (value: string) => void;
   onBackToInput: () => void;
   onAnalyze: () => void;
+  isLoading?: boolean;
+  loadingMessage?: string;
 }
 
 const SettingsForm: React.FC<SettingsFormProps> = ({
   autoDetect,
   maxArticles,
+  nrTopics,
+  minClusterSize,
   query,
   source,
   feed,
   onAutoDetectChange,
   onMaxArticlesChange,
+  onNrTopicsChange,
+  onMinClusterSizeChange,
   onSourceChange,
   onFeedChange,
   onBackToInput,
-  onAnalyze
+  onAnalyze,
+  isLoading = false,
+  loadingMessage = "Discovering Topics..."
 }) => {
   const [advancedMode, setAdvancedMode] = useState(false);
   const [searchTerms, setSearchTerms] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('cs.CV');
   const [categories, setCategories] = useState<Record<string, string[]>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [showCategories, setShowCategories] = useState(false);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        setIsLoading(true);
+        setCategoriesLoading(true);
         const response = await fetch('/api/v1/sources/arxiv/categories');
         if (!response.ok) {
           throw new Error('Failed to fetch categories');
@@ -54,7 +66,7 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
         // On error, categories will remain an empty object.
         // The UI will show a loading or empty state.
       } finally {
-        setIsLoading(false);
+        setCategoriesLoading(false);
     }
     };
 
@@ -96,13 +108,42 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
           id="max-articles"
           type="number"
           min={1}
-          max={100}
           value={maxArticles}
           onChange={(e) => onMaxArticlesChange(parseInt(e.target.value, 10) || 1)}
           className="w-full"
         />
         <p className="text-sm text-muted-foreground">
-          LangChain will automatically determine optimal topic clusters using semantic analysis
+          Maximum number of articles to use for the analysis.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="nr-topics">Number of topics</Label>
+        <Input
+            id="nr-topics"
+            type="number"
+            min={1}
+            value={nrTopics}
+            onChange={(e) => onNrTopicsChange(parseInt(e.target.value, 10) || 1)}
+            className="w-full"
+        />
+        <p className="text-sm text-muted-foreground">
+          The number of topics to generate.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="min-cluster-size">Minimum cluster size</Label>
+        <Input
+            id="min-cluster-size"
+            type="number"
+            min={1}
+            value={minClusterSize}
+            onChange={(e) => onMinClusterSizeChange(parseInt(e.target.value, 10) || 1)}
+            className="w-full"
+        />
+        <p className="text-sm text-muted-foreground">
+          The minimum number of articles a topic must have.
         </p>
       </div>
 
@@ -165,9 +206,9 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
                         className="w-full border border-input rounded-md p-2 appearance-none"
-                        disabled={isLoading || Object.keys(categories).length === 0}
+                        disabled={categoriesLoading || Object.keys(categories).length === 0}
                       >
-                        {isLoading ? (
+                        {categoriesLoading ? (
                           <option>Loading categories...</option>
                         ) : Object.keys(categories).length === 0 ? (
                           <option>Could not load categories</option>
@@ -256,13 +297,17 @@ const SettingsForm: React.FC<SettingsFormProps> = ({
         <div className="relative">
           <Button
             onClick={onAnalyze}
-            className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:bg-primary/90 transition-all duration-300"
+            className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:bg-primary/90 transition-all duration-300 disabled:opacity-50"
             variant="default"
-            disabled={!query.trim()}
+            disabled={!query.trim() || isLoading}
           >
-            <BarChart3 className="h-4 w-4" />
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <BarChart3 className="h-4 w-4" />
+            )}
             <span className="analyze-text relative">
-              Analyze Trends
+              {isLoading ? loadingMessage : "Analyze Trends"}
               <span className="analyze-underline"></span>
             </span>
           </Button>

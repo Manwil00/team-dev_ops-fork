@@ -10,6 +10,7 @@ CREATE TABLE analysis (
     id UUID PRIMARY KEY,
     query TEXT NOT NULL,
     type VARCHAR(50) NOT NULL, -- 'Research' or 'Community'
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
     feed_url TEXT NOT NULL,
     total_articles_processed INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT now()
@@ -81,6 +82,7 @@ WITH (lists = 100); -- Optimize for up to ~10,000 vectors
 
 -- Comments for documentation
 COMMENT ON TABLE analysis IS 'Tracks complete analysis sessions with metadata about the query and source';
+COMMENT ON COLUMN analysis.status IS 'Current status of the analysis job (e.g., PENDING, COMPLETED, FAILED)';
 COMMENT ON TABLE topic IS 'Individual topics discovered within an analysis, with vector embeddings for similarity search';
 COMMENT ON TABLE article IS 'Individual articles that belong to topics, with their own vector embeddings';
 COMMENT ON COLUMN topic.embedding IS '768-dimensional vector embedding for semantic similarity search using Google Gemini';
