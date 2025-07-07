@@ -53,7 +53,7 @@ NicheExplorer is a microservices-based application that leverages machine learni
 
 | Service           | Technology Stack       | Port | Purpose                                   |
 |------------------|------------------------|------|-------------------------------------------|
-| client           | React + Vite + Nginx   | 80   | User interface and interaction            |
+| client           | React + Vite + Nginx   | 80   | User interface and interaction [docs](web-client/README.md)           |
 | api-server       | Spring Boot + Java     | 8080 | Request orchestration and business logic [[docs](services/spring-api/README.md)] |
 | genai            | FastAPI + Python       | 8000 | AI/ML processing and embeddings [[docs](services/py-genai/README.md)] |
 | topic-discovery  | FastAPI + Python       | 8100 | Content clustering and topic analysis [[docs](services/py-topics/README.md)] |
@@ -61,16 +61,6 @@ NicheExplorer is a microservices-based application that leverages machine learni
 | db               | PostgreSQL + pgvector  | 5432 | Data persistence and vector search        |
 
 ➡️ **Traefik Dashboard**: [http://localhost:8080/dashboard/](http://localhost:8080/dashboard/)
-
-## 📚 Service Docs
-
-| Service | Detailed README |
-|---------|-----------------|
-| Web Client | [web-client/README](web-client/README.md) |
-| Spring API Server | [services/spring-api/README](services/spring-api/README.md) |
-| GenAI Service | [services/py-genai/README](services/py-genai/README.md) |
-| Topic Discovery Service | [services/py-topics/README](services/py-topics/README.md) |
-| Article Fetcher Service | [services/py-fetcher/README](services/py-fetcher/README.md) |
 
 ## API Documentation
 
@@ -174,24 +164,5 @@ topic_article (
     PRIMARY KEY (topic_id, article_id)
 )
 ```
-
-# Microservice Description
-### Topic Discovery Service (`py-topics`)
-
-The **py-topics** micro-service is responsible for clustering fetched articles into coherent semantic topics.
-It receives a list of article embeddings from the GenAI service, uses **BERTopic** + **HDBSCAN** to detect
-clusters, then labels each cluster with the help of an LLM (Google Gemini/OpenRouter).  The service exposes a
-single REST endpoint `/api/v1/topics/discover` (see OpenAPI spec) that takes the original query, cached
-embedding IDs and/or raw article metadata and returns a ranked list of topics with representative articles.
-
-Key features:
-
-* Adaptive topic count – specify `nr_topics` or let the model decide automatically.
-* Minimum cluster size control (`min_cluster_size`).
-* Stateless – all heavy lifting is done in-memory; results are sent back to the orchestrator which
-  stores them in PostgreSQL.
-* Fully covered by unit, integration and Pact provider tests (see `services/py-topics/tests`).
-
----
 
 
