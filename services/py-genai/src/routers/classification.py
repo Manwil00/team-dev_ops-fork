@@ -20,7 +20,7 @@ async def classify_query(request: ClassifyRequest):
             detail={"code": "INVALID_REQUEST", "message": "Query cannot be empty"},
         )
 
-    generic_words = r"\b(?:current|latest|recent|research|study|studies|trend|trends|paper|papers)\b"
+    generic_words = r"\b(?:current|latest|recent|research|study|studies|trend|trends|paper|papers|growing|growth)\b"
     cleaned_query = re.sub(generic_words, "", request.query, flags=re.IGNORECASE)
     cleaned_query = re.sub(r"\s+", " ", cleaned_query).strip()
 

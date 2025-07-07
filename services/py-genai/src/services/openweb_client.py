@@ -121,7 +121,7 @@ Return ONLY valid JSON with keys 'source', 'feed', and optional 'confidence'. **
    * reddit → subreddit name (MachineLearning, computervision …).
 
 When you build an advanced arXiv query:
-• Ignore generic stop-words such as: current, latest, recent, research, study, studies, trend, trends, paper, papers.
+• Ignore generic stop-words such as: current, latest, recent, research, study, studies, trend, trends, paper, papers, growing, growth.
 • Quote multi-word key phrases inside `all:"…"`.
 • Combine multiple key phrases with `+AND+` and always keep a `cat:<category>` filter.
 
