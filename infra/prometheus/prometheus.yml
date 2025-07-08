@@ -12,6 +12,20 @@ scrape_configs:
   - job_name: 'traefik'
     static_configs:
       - targets: ['traefik:8082']
-    
+
+  - job_name: 'genai'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['genai:8000']
+
+  - job_name: 'topic-discovery'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['topic-discovery:8100']
+
+  - job_name: 'article-fetcher'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['article-fetcher:8200']
 rule_files:
   - "traefik_rules.yml"
