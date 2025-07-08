@@ -158,6 +158,30 @@ services:
       - "traefik.http.middlewares.prometheus-auth.basicauth.users=${PROMETHEUS_USER}:${PROMETHEUS_PASSWORD}"
     restart: unless-stopped
 
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_FEATURE_TOGGLES_ENABLE=logsInExplore
+      - GF_LOG_CONSOLECOLORS=true
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    depends_on:
+      - prometheus
+    networks:
+      - niche-explorer-network
+    restart: unless-stopped
 
 networks:
   niche-explorer-network:
@@ -167,4 +191,6 @@ volumes:
   pgdata:
     driver: local
   prometheus_data:
+    driver: local
+  grafana_data:
     driver: local

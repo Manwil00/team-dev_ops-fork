@@ -38,9 +38,13 @@ services:
 
   prometheus:
     labels:
-      # Use a host rule for local access. If your .env has DOMAIN=localhost,
-      # you will access this at http://prometheus.localhost
       - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
 
-      # This is the key override: it explicitly disables TLS for this router.
       - "traefik.http.routers.prometheus.tls=false"
+
+  grafana:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
+      - "traefik.http.routers.grafana.tls=false"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
