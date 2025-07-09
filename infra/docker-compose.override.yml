@@ -35,3 +35,16 @@ services:
       - "traefik.http.middlewares.cors-headers.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS"
       - "traefik.http.middlewares.cors-headers.headers.accesscontrolallowheaders=*"
       - "traefik.http.services.api-server.loadbalancer.server.port=8080" 
+
+  prometheus:
+    labels:
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
+
+      - "traefik.http.routers.prometheus.tls=false"
+
+  grafana:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
+      - "traefik.http.routers.grafana.tls=false"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"

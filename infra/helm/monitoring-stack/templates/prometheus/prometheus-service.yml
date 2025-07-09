@@ -1,0 +1,13 @@
+# Following https://medium.com/@vinoji2005/install-prometheus-on-kubernetes-tutorial-and-example-6b3c800e7e1c
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+spec:
+  selector:
+    app: prometheus-server
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090

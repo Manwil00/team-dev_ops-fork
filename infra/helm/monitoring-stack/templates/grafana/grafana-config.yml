@@ -1,0 +1,66 @@
+# monitoring-stack/templates/grafana-configmap.yaml
+
+# ConfigMap for Grafana Datasources
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning-datasources
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: grafana
+data:
+  datasources.yaml: |-
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-service:9090
+      access: proxy
+      isDefault: true
+
+---
+# ConfigMap for Grafana Dashboards
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning-dashboards
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: grafana
+data:
+  provider.yaml: |-
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      editable: true
+      options:
+        # This path is INSIDE the pod. Since this CM is mounted to /dashboards, it will find them.
+        path: /etc/grafana/provisioning/dashboards
+
+  # This Helm template logic embeds all your JSON files into this same ConfigMap.
+  {{- $dashboard_files := .Files.Glob "grafana/provisioning/dashboards/*.json" }}
+  {{- if $dashboard_files }}
+  {{- range $path, $bytes := $dashboard_files }}
+  {{ (base $path) }}: |-
+    {{- $.Files.Get $path | nindent 4 }}
+  {{- end }}
+  {{- end }}
+
+---
+# ConfigMap for Grafana Alerting
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning-alerting
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: grafana
+data:
+  contactpoints.yaml: |-
+    {{- .Files.Get "grafana/provisioning/alerting/contactpoints.yml" | nindent 4 }}
+  rules.yaml: |-
+    {{- .Files.Get "grafana/provisioning/alerting/rules.yml" | nindent 4 }}

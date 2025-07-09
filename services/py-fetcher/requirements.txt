@@ -4,3 +4,4 @@ pydantic
 arxiv
 feedparser
 requests
+starlette-prometheus

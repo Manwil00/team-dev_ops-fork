@@ -106,10 +106,53 @@ team-dev_ops/
 ├── infra/                 # Infrastructure as code
 │   ├── docker-compose.yml # Local development
 │   ├── helm/              # Kubernetes charts
+│   ├── grafana/           # Grafana configuration
+│   ├── prometheus/        # Prometheus configuration
+│   ├── traefik/           # Traefik configuration
 │   ├── terraform/         # Cloud infrastructure
 │   └── ansible/           # Configuration management
 └── docs/                  # Documentation and architecture
 ```
+
+### Kubernetes Deployment
+
+The application is set up to be deployable to a Kubernetes cluster via Helm.
+
+The Helm folder structure is organized as follows:
+
+```
+team-dev_ops/infra/helm/
+├── monitoring-stack/           # Monitoring deployment
+│   ├── grafana/                # All Grafana deployment files
+│   ├── prometheus/             # All Prometheus deployment files
+│   ├── Chart.yml               # Default Helm chart for deployment
+├── niche-explorer/             # Microservices source code
+│   ├── templates/              # Contains all Kubernetes resource templates
+│   │   ├── deployments/        # Helm templates for Deployments
+│   │   ├── services/           # Helm templates for Services
+│   │   └── ...                 # Other resource templates (e.g., ingresses, configmaps)
+│   ├── Chart.yaml              # Helm chart definition for niche-explorer
+│   └── values.yaml             # Configurable values for niche-explorer charts
+├── deploy-monitoring-stack.sh  # Script to deploy the monitoring stack
+```
+
+Before deploying, ensure the following configurations are in place:
+- Create secrets on k8s cluster:
+    - Insert the secret name in `values.yml` at `existingSecret: ...` sections
+    - CHAIR_API_KEY: Key to an LLM
+    - GOOGLE_API_KEY: Key of [text](https://aistudio.google.com/)
+    - POSTGRES_DB: Name of the database
+    - POSTGRES_PASSWORD: Password for the database
+    - POSTGRES_USER: Username for the database
+- Configure Ingress address in `values.yml`
+- Create two namespaces in the project and configure the .kube/config file to point to the cluster:
+    - niche-explorer: Namespace for the main project
+    - monitoring: Namespace for the monitoring services.
+- Deploy the two Helm charts from the project root:
+    - niche-explorer (main application):
+        - Run `helm upgrade --install -n niche-explorer <Deployment Name> infra/helm/niche_explorer/`
+    - monitoring-stack (i.e. Grafana and Prometheus):
+        - Run `bash deploy-monitoring-stack.sh`
 
 
 ### Database Schema

@@ -1,0 +1,13 @@
+# Following https://medium.com/@vinoji2005/install-prometheus-on-kubernetes-tutorial-and-example-6b3c800e7e1c
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-server-conf
+  # Adding the namespace is good practice for Helm charts
+  namespace: {{ .Release.Namespace }}
+data:
+  prometheus.yml: |-
+    {{- .Files.Get "prometheus/prometheus.yml" | nindent 4 }}
+
+  traefik_rules.yml: |-
+    {{- .Files.Get "prometheus/traefik_rules.yml" | nindent 4 }}
