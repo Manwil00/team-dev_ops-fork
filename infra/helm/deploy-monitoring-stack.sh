@@ -12,7 +12,7 @@ INFRA_DIR_PATH="../"
 set -e
 
 # This trap ensures that the cleanup function is ALWAYS called when the script exits,
-# whether it succeeds, fails, or is interrupted (e.g., Ctrl+C).
+# whether it succeeds, fails, or is interrupted.
 function cleanup {
   echo "--- Executing cleanup ---"
   rm -rf "${CHART_DIR}/grafana"
