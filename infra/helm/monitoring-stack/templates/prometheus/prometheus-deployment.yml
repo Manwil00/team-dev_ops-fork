@@ -19,10 +19,9 @@ spec:
           ports:
             - containerPort: 9090
           volumeMounts:
-            - name: config-volume
+            - name: prometheus-pv
               mountPath: /etc/prometheus
       volumes:
-        - name: config-volume
-          configMap:
-            name: prometheus-server-conf
-            defaultMode: 420
+        - name: prometheus-pv
+          persistentVolumeClaim:
+            claimName: prometheus-pvc
