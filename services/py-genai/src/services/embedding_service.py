@@ -11,6 +11,8 @@ import arxiv
 
 from ..settings import settings
 
+import uuid
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)  # Temporary for debugging cache behavior
 
@@ -104,17 +106,18 @@ class EmbeddingService:
                     execute_batch(
                         cur,
                         """
-                        INSERT INTO article (external_id, embedding)
-                        VALUES (%s, %s)
+                        INSERT INTO article (id, external_id, embedding)
+                        VALUES (%s, %s, %s)
                         ON CONFLICT (external_id) DO UPDATE
                         SET embedding = EXCLUDED.embedding
                         """,
                         [
-                            (ext_id, emb)
+                            (str(uuid.uuid4()), ext_id, emb)
                             for (_, ext_id), emb in zip(new_ids, new_embeddings)
                         ],
                         page_size=100,
                     )
+                    self.conn.commit()
             except Exception as e:
                 logger.warning("Failed to upsert embeddings into Postgres: %s", e)
 
@@ -216,17 +219,18 @@ class EmbeddingService:
                         execute_batch(
                             cur,
                             """
-                            INSERT INTO article (external_id, embedding)
-                            VALUES (%s, %s)
+                            INSERT INTO article (id, external_id, embedding)
+                            VALUES (%s, %s, %s)
                             ON CONFLICT (external_id) DO UPDATE
                             SET embedding = EXCLUDED.embedding
                             """,
                             [
-                                (ext_id, emb)
+                                (str(uuid.uuid4()), ext_id, emb)
                                 for ext_id, emb in zip(new_article_ids, new_embeddings)
                             ],
                             page_size=100,
                         )
+                        self.conn.commit()
                     logger.info(
                         "Successfully stored %s new embeddings in Postgres.",
                         len(new_article_ids),

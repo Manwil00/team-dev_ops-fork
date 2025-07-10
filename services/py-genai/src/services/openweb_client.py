@@ -11,6 +11,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from niche_explorer_models.models.classify_response import ClassifyResponse
 from fastapi import HTTPException
+import langchain_google_genai
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ class OpenWebUILLM(LLM):
 
         try:
             response = requests.post(
-                self.api_url, headers=headers, json=payload, timeout=30
+                self.api_url, headers=headers, json=payload, timeout=120
             )
 
             response.raise_for_status()
@@ -178,9 +179,13 @@ User query: {query}""",
             )
 
     def generate_text(
-        self, prompt: str, model_name: str, max_tokens: int, temperature: float
+        self,
+        prompt: str,
+        model_name: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
     ) -> str:
-        """Generates text using the OpenWebUI LLM."""
+        """Generate text using OpenWebUI with fallback to Gemini."""
         try:
             effective_model = model_name or self.llm.model_name
             logger.info(
@@ -198,8 +203,18 @@ User query: {query}""",
             response = self.llm(prompt, **params)
             return response
         except Exception as e:
-            logger.error(f"Failed to generate text with OpenWebUI: {e}", exc_info=True)
-            raise HTTPException(
-                status_code=500,
-                detail={"code": "GENERATION_ERROR", "message": str(e)},
-            ) from e
+            logger.warning(f"OpenWebUI generation failed: {e}. Falling back to Gemini.")
+            try:
+                from ..settings import settings
+
+                gemini_llm = langchain_google_genai.GoogleGenerativeAI(
+                    model="gemini-1.5-flash",
+                    google_api_key=settings.GOOGLE_API_KEY,
+                )
+                return gemini_llm(prompt)
+            except Exception as fallback_e:
+                logger.error(f"Gemini fallback also failed: {fallback_e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail={"code": "GENERATION_ERROR", "message": str(fallback_e)},
+                ) from fallback_e
