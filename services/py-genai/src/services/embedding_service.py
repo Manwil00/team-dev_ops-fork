@@ -8,10 +8,12 @@ from psycopg2.extras import execute_batch
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 import arxiv
+import uuid
 
 from ..settings import settings
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Temporary for debugging cache behavior
 
 
 class EmbeddingService:
@@ -103,13 +105,13 @@ class EmbeddingService:
                     execute_batch(
                         cur,
                         """
-                        INSERT INTO article (external_id, embedding)
-                        VALUES (%s, %s)
+                        INSERT INTO article (id, external_id, embedding)
+                        VALUES (%s, %s, %s)
                         ON CONFLICT (external_id) DO UPDATE
                         SET embedding = EXCLUDED.embedding
                         """,
                         [
-                            (ext_id, emb)
+                            (str(uuid.uuid4()), ext_id, emb)
                             for (_, ext_id), emb in zip(new_ids, new_embeddings)
                         ],
                         page_size=100,
@@ -182,11 +184,24 @@ class EmbeddingService:
             article for article in articles if article.get_short_id() not in cached_ids
         ]
 
+        # Debug log for skipped (cached) articles
+        for article in articles:
+            ext_id = article.get_short_id()
+            if ext_id in cached_ids:
+                logger.debug(
+                    f"Embedding skipped for article {ext_id} - already cached."
+                )
+
         # 3. Generate and store embeddings for new articles
         if new_articles:
             logger.info(
                 f"Generating and storing embeddings for {len(new_articles)} new articles."
             )
+
+            # Debug log for newly generated embeddings
+            for article in new_articles:
+                ext_id = article.get_short_id()
+                logger.debug(f"Generating new embedding for article {ext_id}.")
 
             texts_to_embed = [
                 f"{article.title} - {article.summary}" for article in new_articles

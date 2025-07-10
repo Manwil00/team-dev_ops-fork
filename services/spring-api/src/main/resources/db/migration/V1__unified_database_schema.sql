@@ -27,17 +27,15 @@ CREATE TABLE topic (
     CONSTRAINT fk_topic_analysis FOREIGN KEY (analysis_id) REFERENCES analysis(id) ON DELETE CASCADE
 );
 
--- Create article table to store individual articles (deduplicated per analysis)
+-- Create article table to store individual articles (deduplicated globally, not per analysis)
 CREATE TABLE article (
     id UUID PRIMARY KEY,
-    analysis_id UUID NOT NULL,
     external_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    link TEXT NOT NULL,
+    title TEXT,
+    link TEXT,
     snippet TEXT,
     embedding vector(768),
-    CONSTRAINT fk_article_analysis FOREIGN KEY (analysis_id) REFERENCES analysis(id) ON DELETE CASCADE,
-    CONSTRAINT unique_article_external UNIQUE (analysis_id, external_id)
+    CONSTRAINT unique_article_external UNIQUE (external_id)
 );
 
 -- Link table to associate articles with multiple topics (many-to-many)
@@ -59,7 +57,6 @@ CREATE INDEX idx_topic_analysis_id ON topic(analysis_id);
 CREATE INDEX idx_topic_relevance ON topic(relevance DESC);
 
 -- Performance indexes for article table
-CREATE INDEX idx_article_analysis_id ON article(analysis_id);
 CREATE INDEX idx_article_external_id ON article(external_id);
 
 -- Link table index
@@ -74,4 +71,4 @@ CREATE INDEX IF NOT EXISTS article_embedding_idx
 COMMENT ON TABLE analysis IS 'Tracks complete analysis sessions with metadata about the query and source';
 COMMENT ON COLUMN analysis.status IS 'Current status of the analysis job (e.g., PENDING, COMPLETED, FAILED)';
 COMMENT ON TABLE topic IS 'Individual topics discovered within an analysis';
-COMMENT ON TABLE article IS 'Individual articles that belong to topics';
+COMMENT ON TABLE article IS 'Individual articles that are globally unique by external_id and can be shared across analyses';
