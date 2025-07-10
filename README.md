@@ -154,7 +154,7 @@ Before deploying, ensure the following configurations are in place:
 
 ### Database Schema
 
-The application uses PostgreSQL with ChromaDB (referenced by external_id in Article). Class Diagram:
+The application uses PostgreSQL with pgvector. Class Diagram:
 ![Class Diagram](docs/Product%20backlog%20%26%20architecture/assets/Class_Diagram.png)
 
 
