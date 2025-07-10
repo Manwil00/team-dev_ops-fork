@@ -36,8 +36,13 @@ async def classify_query(request: ClassifyRequest):
     source_type = "research" if response.source == "arxiv" else "community"
 
     # Convert the attrs response to our Pydantic model
-    return ClassifyResponse(
+    parsed_data = ClassifyResponse(
         source=response.source,
         source_type=source_type,
         suggested_category=response.suggested_category,
     )
+
+    # Temporary: Force source to arxiv (disable reddit)
+    parsed_data.source = "arxiv"
+
+    return parsed_data

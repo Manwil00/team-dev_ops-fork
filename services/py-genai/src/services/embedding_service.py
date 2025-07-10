@@ -8,7 +8,6 @@ from psycopg2.extras import execute_batch
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 import arxiv
-import uuid
 
 from ..settings import settings
 
@@ -105,13 +104,13 @@ class EmbeddingService:
                     execute_batch(
                         cur,
                         """
-                        INSERT INTO article (id, external_id, embedding)
-                        VALUES (%s, %s, %s)
+                        INSERT INTO article (external_id, embedding)
+                        VALUES (%s, %s)
                         ON CONFLICT (external_id) DO UPDATE
                         SET embedding = EXCLUDED.embedding
                         """,
                         [
-                            (str(uuid.uuid4()), ext_id, emb)
+                            (ext_id, emb)
                             for (_, ext_id), emb in zip(new_ids, new_embeddings)
                         ],
                         page_size=100,
