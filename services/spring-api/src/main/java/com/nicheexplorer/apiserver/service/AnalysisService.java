@@ -153,15 +153,14 @@ public class AnalysisService {
             );
 
             for (Article article : topic.getArticles()) {
-                // Upsert article once per analysis based on external_id
+                // Upsert article based on external_id only
                 UUID articleRowId;
                 try {
                     articleRowId = jdbcTemplate.queryForObject(
-                            "INSERT INTO article (id, analysis_id, external_id, title, link, snippet) VALUES (?, ?, ?, ?, ?, ?) " +
-                                    "ON CONFLICT (analysis_id, external_id) DO UPDATE SET title = EXCLUDED.title RETURNING id",
+                            "INSERT INTO article (id, external_id, title, link, snippet) VALUES (?, ?, ?, ?, ?) " +
+                                    "ON CONFLICT (external_id) DO UPDATE SET title = EXCLUDED.title, link = EXCLUDED.link, snippet = EXCLUDED.snippet RETURNING id",
                             (rs, rowNum) -> UUID.fromString(rs.getString(1)),
                             UUID.randomUUID(),
-                            analysisId,
                             article.getId(),
                             article.getTitle(),
                             article.getLink().toString(),
@@ -170,9 +169,8 @@ public class AnalysisService {
                 } catch (Exception ex) {
                     // Fallback: fetch existing id if upsert did not return
                     articleRowId = jdbcTemplate.queryForObject(
-                            "SELECT id FROM article WHERE analysis_id = ? AND external_id = ?",
+                            "SELECT id FROM article WHERE external_id = ?",
                             UUID.class,
-                            analysisId,
                             article.getId()
                     );
                 }

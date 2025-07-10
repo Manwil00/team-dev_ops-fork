@@ -1,12 +1,12 @@
 # GenAI Service
 
-This service handles query classification, ArXiv integration, embedding generation using Google Gemini or Sentence Transformers, and caching in ChromaDB.
+This service handles query classification, ArXiv integration, embedding generation using Google Gemini or Sentence Transformers, and saving embeddings to our vector db.
 
 ## Responsibilities
 - Classify queries to determine type (research/community) and ArXiv categories.
-- Fetch papers from ArXiv.
-- Generate and cache semantic embeddings.
-- Generate queries for community data.
+- Generate and cache semantic embeddings and store them.
+- Generate optimized query for a specific data source using AI
+- Takes a prompt and returns a generated text from a specified Large Language Model (e.g., Gemini, OpenRouter).
 
 ## API Documentation
 

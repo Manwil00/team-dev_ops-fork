@@ -13,7 +13,7 @@ embedding_service = EmbeddingService()
 
 @router.post("/embeddings", response_model=EmbeddingResponse)
 async def generate_embeddings(request: EmbeddingRequest):
-    """Generate embeddings for multiple texts with ChromaDB caching"""
+    """Generate embeddings for multiple texts with database caching"""
     if len(request.texts) != len(request.ids):
         raise HTTPException(
             status_code=400, detail="The number of texts and ids must be the same."
