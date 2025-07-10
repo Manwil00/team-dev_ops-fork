@@ -52,7 +52,8 @@ cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
 cur.execute(
     """
     CREATE TABLE IF NOT EXISTS article (
-        external_id TEXT PRIMARY KEY,
+        id UUID PRIMARY KEY,
+        external_id TEXT UNIQUE NOT NULL,
         embedding   vector(768)
     );
     """
