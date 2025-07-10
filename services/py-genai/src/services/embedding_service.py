@@ -102,9 +102,14 @@ class EmbeddingService:
                 with self.conn.cursor() as cur:
                     execute_batch(
                         cur,
-                        "UPDATE article SET embedding = %s WHERE external_id = %s",
+                        """
+                        INSERT INTO article (external_id, embedding)
+                        VALUES (%s, %s)
+                        ON CONFLICT (external_id) DO UPDATE
+                        SET embedding = EXCLUDED.embedding
+                        """,
                         [
-                            (emb, ext_id)
+                            (ext_id, emb)
                             for (_, ext_id), emb in zip(new_ids, new_embeddings)
                         ],
                         page_size=100,
@@ -196,9 +201,14 @@ class EmbeddingService:
                     with self.conn.cursor() as cur:
                         execute_batch(
                             cur,
-                            "UPDATE article SET embedding = %s WHERE external_id = %s",
+                            """
+                            INSERT INTO article (external_id, embedding)
+                            VALUES (%s, %s)
+                            ON CONFLICT (external_id) DO UPDATE
+                            SET embedding = EXCLUDED.embedding
+                            """,
                             [
-                                (emb, ext_id)
+                                (ext_id, emb)
                                 for ext_id, emb in zip(new_article_ids, new_embeddings)
                             ],
                             page_size=100,
