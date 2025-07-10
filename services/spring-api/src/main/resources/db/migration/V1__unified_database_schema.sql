@@ -20,19 +20,11 @@ CREATE TABLE analysis (
 CREATE TABLE topic (
     id UUID PRIMARY KEY,
     analysis_id UUID NOT NULL,
-    query VARCHAR(255),
-    type VARCHAR(50),
-    feed_url TEXT,
     title TEXT NOT NULL,
     description TEXT,
     article_count INT DEFAULT 0,
     relevance INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT now(),
-    embedding vector(768), -- Using 768-dimensional embeddings (compatible with all-MiniLM-L6-v2)
-
-    -- Foreign key relationship to analysis table
-    CONSTRAINT fk_topic_analysis
-        FOREIGN KEY (analysis_id) REFERENCES analysis(id) ON DELETE CASCADE
+    CONSTRAINT fk_topic_analysis FOREIGN KEY (analysis_id) REFERENCES analysis(id) ON DELETE CASCADE
 );
 
 -- Create article table to store individual articles (deduplicated per analysis)
@@ -43,14 +35,8 @@ CREATE TABLE article (
     title TEXT NOT NULL,
     link TEXT NOT NULL,
     snippet TEXT,
-    created_at TIMESTAMP DEFAULT now(),
-    embedding vector(768), -- Vector embedding of article content
-
-    -- Foreign key relationship
-    CONSTRAINT fk_article_analysis
-        FOREIGN KEY (analysis_id) REFERENCES analysis(id) ON DELETE CASCADE,
-
-    -- Ensure each external source article is stored once per analysis
+    embedding vector(768),
+    CONSTRAINT fk_article_analysis FOREIGN KEY (analysis_id) REFERENCES analysis(id) ON DELETE CASCADE,
     CONSTRAINT unique_article_external UNIQUE (analysis_id, external_id)
 );
 
@@ -70,30 +56,22 @@ CREATE INDEX idx_analysis_type ON analysis(type);
 
 -- Performance indexes for topic table
 CREATE INDEX idx_topic_analysis_id ON topic(analysis_id);
-CREATE INDEX idx_topic_created_at ON topic(created_at DESC);
 CREATE INDEX idx_topic_relevance ON topic(relevance DESC);
 
 -- Performance indexes for article table
 CREATE INDEX idx_article_analysis_id ON article(analysis_id);
-CREATE INDEX idx_article_created_at ON article(created_at DESC);
 CREATE INDEX idx_article_external_id ON article(external_id);
 
 -- Link table index
 CREATE INDEX idx_ta_topic ON topic_article(topic_id);
 
 -- Vector similarity search indexes (using IVFFlat for cosine similarity)
-CREATE INDEX topic_embedding_idx ON topic USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100); -- Optimize for up to ~10,000 vectors
-
-CREATE INDEX article_embedding_idx ON article USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100); -- Optimize for up to ~10,000 vectors
+CREATE INDEX IF NOT EXISTS article_embedding_idx
+    ON article USING ivfflat (embedding vector_cosine_ops)
+    WITH (lists = 100);
 
 -- Comments for documentation
 COMMENT ON TABLE analysis IS 'Tracks complete analysis sessions with metadata about the query and source';
 COMMENT ON COLUMN analysis.status IS 'Current status of the analysis job (e.g., PENDING, COMPLETED, FAILED)';
-COMMENT ON TABLE topic IS 'Individual topics discovered within an analysis, with vector embeddings for similarity search';
-COMMENT ON TABLE article IS 'Individual articles that belong to topics, with their own vector embeddings';
-COMMENT ON COLUMN topic.embedding IS '768-dimensional vector embedding for semantic similarity search using Google Gemini';
-COMMENT ON COLUMN article.embedding IS '768-dimensional vector embedding of article content for detailed similarity search';
-COMMENT ON INDEX topic_embedding_idx IS 'IVFFlat index for fast cosine similarity search on topic embeddings';
-COMMENT ON INDEX article_embedding_idx IS 'IVFFlat index for fast cosine similarity search on article embeddings';
+COMMENT ON TABLE topic IS 'Individual topics discovered within an analysis';
+COMMENT ON TABLE article IS 'Individual articles that belong to topics';

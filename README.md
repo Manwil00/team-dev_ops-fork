@@ -53,7 +53,7 @@ NicheExplorer is a microservices-based application that leverages machine learni
 
 | Service           | Technology Stack       | Port | Purpose                                   |
 |------------------|------------------------|------|-------------------------------------------|
-| client           | React + Vite + Nginx   | 80   | User interface and interaction [[docs]](web-client/README.md)           |
+| client           | React + Vite + Nginx   | 80   | User interface and interaction [[docs](web-client/README.md)]           |
 | api-server       | Spring Boot + Java     | 8080 | Request orchestration and business logic [[docs](services/spring-api/README.md)] |
 | genai            | FastAPI + Python       | 8000 | AI/ML processing and embeddings [[docs](services/py-genai/README.md)] |
 | topic-discovery  | FastAPI + Python       | 8100 | Content clustering and topic analysis [[docs](services/py-topics/README.md)] |
@@ -88,11 +88,7 @@ http-server docs -p 8088
 
 # Architecture
 
-> **TODO:** Embed the updated micro-service architecture diagram here (`docs/assets/Architecture.svg`).
-
-> **TODO:** Add class diagram (`docs/assets/Class_Diagram.svg`).
-
-> **TODO:** Add high-level use-case diagram (`docs/assets/use-case.svg`).
+![Architecture Diagram](https://raw.githubusercontent.com/AET-DevOps25/team-dev_ops/main/docs/Product%20backlog%20%26%20architecture/assets/Architecture.png)
 
 ```
 team-dev_ops/
@@ -113,6 +109,7 @@ team-dev_ops/
 │   └── ansible/           # Configuration management
 └── docs/                  # Documentation and architecture
 ```
+
 
 ### Kubernetes Deployment
 
@@ -157,55 +154,11 @@ Before deploying, ensure the following configurations are in place:
 
 ### Database Schema
 
-The application uses PostgreSQL with pgvector extension for vector similarity search. Key tables:
-
-**Core Tables:**
-```sql
--- Analysis sessions
-analysis (
-    id UUID PRIMARY KEY,
-    query TEXT NOT NULL,
-    type VARCHAR(50) NOT NULL,   -- 'Research' or 'Community'
-    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
-    feed_url TEXT NOT NULL,
-    total_articles_processed INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT now()
-)
-
--- Discovered topics (one row per semantic cluster)
-topic (
-    id UUID PRIMARY KEY,
-    analysis_id UUID REFERENCES analysis(id) ON DELETE CASCADE,
-    query VARCHAR(255),
-    type VARCHAR(50),
-    feed_url TEXT,
-    title TEXT NOT NULL,
-    description TEXT,
-    article_count INT DEFAULT 0,
-    relevance INT DEFAULT 0,
-    embedding vector(768),  -- Google Gemini embeddings
-    created_at TIMESTAMP DEFAULT now()
-)
-
--- Individual articles (deduplicated by external_id)
-article (
-    id UUID PRIMARY KEY,
-    analysis_id UUID REFERENCES analysis(id) ON DELETE CASCADE,
-    external_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    link TEXT NOT NULL,
-    snippet TEXT,
-    embedding vector(768),
-    created_at TIMESTAMP DEFAULT now(),
-    UNIQUE (analysis_id, external_id)  -- no duplicate arXiv IDs per analysis
-)
-
--- Many-to-many link between topics ↔ articles
-topic_article (
-    topic_id   UUID REFERENCES topic(id) ON DELETE CASCADE,
-    article_id UUID REFERENCES article(id) ON DELETE CASCADE,
-    PRIMARY KEY (topic_id, article_id)
-)
-```
+The application uses PostgreSQL with ChromaDB (referenced by external_id in Article). Class Diagram:
+https://apollon.ase.in.tum.de/AgHi0HlNo8vyTbWCRaht?view=EDIT
+![Class Diagram](https://raw.githubusercontent.com/AET-DevOps25/team-dev_ops/main/docs/Product%20backlog%20%26%20architecture/assets/Class_Diagram.png)
 
 
+### Use Case Diagram 
+
+<img src="https://raw.githubusercontent.com/AET-DevOps25/team-dev_ops/main/docs/Product%20backlog%20%26%20architecture/assets/use-case.png" width="600">

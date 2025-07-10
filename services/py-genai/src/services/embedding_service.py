@@ -1,8 +1,14 @@
 import logging
-from typing import List, Dict
-import chromadb
+from typing import List, Dict, Any
+
+import psycopg2
+from pgvector.psycopg2 import register_vector
+from psycopg2.extras import execute_batch
+
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
 import arxiv
+
 from ..settings import settings
 
 logger = logging.getLogger(__name__)
@@ -13,12 +19,23 @@ class EmbeddingService:
         self.embeddings_client = GoogleGenerativeAIEmbeddings(
             model=settings.EMBEDDING_MODEL, google_api_key=settings.GOOGLE_API_KEY
         )
-        self.db_client = chromadb.PersistentClient(
-            path="./chroma_db", settings=chromadb.Settings(allow_reset=True)
-        )
-        self.collection = self.db_client.get_or_create_collection(
-            name="arxiv_embeddings"
-        )
+
+        # ------------------------------------------------------------------
+        # PostgreSQL connection (pgvector enabled)
+        # ------------------------------------------------------------------
+        try:
+            self.conn = psycopg2.connect(
+                host=settings.POSTGRES_HOST,
+                port=settings.POSTGRES_PORT,
+                dbname=settings.POSTGRES_DB,
+                user=settings.POSTGRES_USER,
+                password=settings.POSTGRES_PASSWORD,
+            )
+            self.conn.autocommit = True  # enable autocommit before registering pgvector
+            register_vector(self.conn)
+        except Exception as e:
+            logger.error("Failed to connect to Postgres for embeddings storage: %s", e)
+            raise
 
     async def embed_text(self, text: str) -> List[float]:
         """Generates a single, non-cached embedding for a given text."""
@@ -38,47 +55,64 @@ class EmbeddingService:
 
     async def embed_batch_with_cache(self, texts: List[str], ids: List[str]) -> Dict:
         """Generate embeddings for multiple texts with ChromaDB caching"""
-        vectors = []
-        cached_count = 0
+        vectors: List[Any] = [None] * len(texts)
 
-        # Try to get existing embeddings from ChromaDB
+        # ------------------------------------------------------------------
+        # 1. Fetch cached embeddings from Postgres
+        # ------------------------------------------------------------------
         try:
-            cached_results = self.collection.get(ids=ids, include=["embeddings"])
-            cached_embeddings = {
-                id: emb
-                for id, emb in zip(cached_results["ids"], cached_results["embeddings"])
-                if emb
-            }
-            cached_count = len(cached_embeddings)
-        except Exception:
-            cached_embeddings = {}
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    "SELECT external_id, embedding FROM article WHERE external_id = ANY(%s) AND embedding IS NOT NULL",
+                    (ids,),
+                )
+                rows = cur.fetchall()
+                cached_map = {
+                    row[0]: list(row[1]) for row in rows if row[1] is not None
+                }
+        except Exception as e:
+            logger.error("Failed to fetch cached embeddings from Postgres: %s", e)
+            cached_map = {}
 
-        # Generate embeddings for texts not in cache
-        new_texts = []
-        new_ids = []
-        for i, (text, doc_id) in enumerate(zip(texts, ids)):
-            if doc_id in cached_embeddings:
-                vectors.append(cached_embeddings[doc_id])
+        cached_count = len(cached_map)
+
+        # ------------------------------------------------------------------
+        # 2. Determine which texts still need embeddings
+        # ------------------------------------------------------------------
+        new_texts: List[str] = []
+        new_ids: List[tuple[int, str]] = []  # (position, external_id)
+
+        for idx, (text, ext_id) in enumerate(zip(texts, ids)):
+            if ext_id in cached_map:
+                vectors[idx] = cached_map[ext_id]
             else:
-                vectors.append(None)  # Placeholder
                 new_texts.append(text)
-                new_ids.append((i, doc_id))
+                new_ids.append((idx, ext_id))
 
-        # Generate new embeddings if needed
+        # ------------------------------------------------------------------
+        # 3. Generate embeddings for uncached texts
+        # ------------------------------------------------------------------
         if new_texts:
             new_embeddings = self._embed_batch(new_texts)
 
-            # Store new embeddings in ChromaDB
+            # ------------------------------------------------------------------
+            # 3a. Upsert embeddings into Postgres (update existing rows for all analyses)
+            # ------------------------------------------------------------------
             try:
-                self.collection.add(
-                    embeddings=new_embeddings,
-                    documents=new_texts,
-                    ids=[doc_id for _, doc_id in new_ids],
-                )
-            except Exception:
-                pass  # Continue even if caching fails
+                with self.conn.cursor() as cur:
+                    execute_batch(
+                        cur,
+                        "UPDATE article SET embedding = %s WHERE external_id = %s",
+                        [
+                            (emb, ext_id)
+                            for (_, ext_id), emb in zip(new_ids, new_embeddings)
+                        ],
+                        page_size=100,
+                    )
+            except Exception as e:
+                logger.warning("Failed to upsert embeddings into Postgres: %s", e)
 
-            # Insert new embeddings into correct positions
+            # Place new embeddings into the result list
             for (idx, _), embedding in zip(new_ids, new_embeddings):
                 vectors[idx] = embedding
 
@@ -87,29 +121,28 @@ class EmbeddingService:
     async def get_embeddings_by_ids(self, ids: List[str]) -> Dict:
         """Retrieve cached embeddings by IDs from ChromaDB"""
         try:
-            cached_results = self.collection.get(ids=ids, include=["embeddings"])
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    "SELECT external_id, embedding FROM article WHERE external_id = ANY(%s) AND embedding IS NOT NULL",
+                    (ids,),
+                )
+                rows = cur.fetchall()
+                cached_map = {
+                    row[0]: list(row[1]) for row in rows if row[1] is not None
+                }
 
-            embeddings = []
+            embeddings: List[List[float]] = []
             found_count = 0
-
-            # Create a map of cached embeddings
-            cached_map = {
-                id: emb
-                for id, emb in zip(cached_results["ids"], cached_results["embeddings"])
-                if emb
-            }
-
-            # Return embeddings in the same order as requested IDs
-            for doc_id in ids:
-                if doc_id in cached_map:
-                    embeddings.append(cached_map[doc_id])
+            for ext_id in ids:
+                if ext_id in cached_map:
+                    embeddings.append(cached_map[ext_id])
                     found_count += 1
                 else:
-                    embeddings.append([])  # Empty list for missing embeddings
+                    embeddings.append([])
 
             return {"embeddings": embeddings, "found_count": found_count}
         except Exception as e:
-            logger.error(f"Error retrieving embeddings by IDs: {e}")
+            logger.error("Error retrieving embeddings by IDs: %s", e)
             return {"embeddings": [[] for _ in ids], "found_count": 0}
 
     def get_embeddings(self, articles: List[arxiv.Result]) -> Dict[str, List[float]]:
@@ -123,22 +156,20 @@ class EmbeddingService:
 
         # 1. Try to get existing embeddings from the database
         try:
-            cached_results = self.collection.get(
-                ids=article_ids, include=["embeddings"]
-            )
-            cached_ids = set(cached_results["ids"])
-            embeddings_map.update(
-                {
-                    id: emb
-                    for id, emb in zip(
-                        cached_results["ids"], cached_results["embeddings"]
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    "SELECT external_id, embedding FROM article WHERE external_id = ANY(%s) AND embedding IS NOT NULL",
+                    (article_ids,),
+                )
+                rows = cur.fetchall()
+                cached_ids = {row[0] for row in rows}
+                embeddings_map.update({row[0]: list(row[1]) for row in rows})
+                if cached_ids:
+                    logger.info(
+                        "Read %s embeddings from Postgres cache.", len(cached_ids)
                     )
-                }
-            )
-            if cached_ids:
-                logger.info(f"Read {len(cached_ids)} embeddings from cache.")
         except Exception as e:
-            logger.error(f"Error fetching from ChromaDB: {e}")
+            logger.error("Error fetching embeddings from Postgres: %s", e)
             cached_ids = set()
 
         # 2. Identify articles that need new embeddings
@@ -159,27 +190,28 @@ class EmbeddingService:
 
             new_article_ids = [article.get_short_id() for article in new_articles]
 
-            # Add new embeddings to ChromaDB
+            # Add new embeddings to Postgres
             if new_article_ids:
                 try:
-                    self.collection.add(
-                        embeddings=new_embeddings,
-                        documents=[f"{a.title} - {a.summary}" for a in new_articles],
-                        metadatas=[
-                            {"title": a.title, "link": str(a.links[0])}
-                            for a in new_articles
-                        ],
-                        ids=new_article_ids,
-                    )
+                    with self.conn.cursor() as cur:
+                        execute_batch(
+                            cur,
+                            "UPDATE article SET embedding = %s WHERE external_id = %s",
+                            [
+                                (emb, ext_id)
+                                for ext_id, emb in zip(new_article_ids, new_embeddings)
+                            ],
+                            page_size=100,
+                        )
                     logger.info(
-                        f"Successfully stored {len(new_article_ids)} new embeddings."
+                        "Successfully stored %s new embeddings in Postgres.",
+                        len(new_article_ids),
                     )
-                    # Add the newly created embeddings to our map
                     embeddings_map.update(
                         {id: emb for id, emb in zip(new_article_ids, new_embeddings)}
                     )
                 except Exception as e:
-                    logger.error(f"Error storing new embeddings in ChromaDB: {e}")
+                    logger.error("Error storing new embeddings in Postgres: %s", e)
 
         return embeddings_map
 

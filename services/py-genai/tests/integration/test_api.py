@@ -3,12 +3,16 @@ import os
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 import uuid
+from src.main import app
 
 # Load environment variables from the project root .env file
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../../../.env"))
 
 # Import the FastAPI app to be tested
-from src.main import app
+
+# ----------------------------------------
+# Test client (shared across integration tests)
+# ----------------------------------------
 
 # Create a single TestClient instance for all tests
 client = TestClient(app)
@@ -77,7 +81,7 @@ def test_embedding_endpoint_invalid_request():
 
 
 @pytest.mark.integration
-def test_embedding_endpoints_real_caching_flow(chroma_client):
+def test_embedding_endpoints_real_caching_flow():
     """
     Tests the POST and GET /api/v1/embeddings endpoints with real dependencies.
     Requires GOOGLE_API_KEY.
