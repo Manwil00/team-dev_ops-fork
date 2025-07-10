@@ -88,7 +88,7 @@ http-server docs -p 8088
 
 # Architecture
 
-![Architecture Diagram](https://raw.githubusercontent.com/AET-DevOps25/team-dev_ops/main/docs/Product%20backlog%20%26%20architecture/assets/Architecture.png)
+![Architecture Diagram](docs/Product%20backlog%20%26%20architecture/assets/Architecture.png)
 
 ```
 team-dev_ops/
@@ -155,10 +155,9 @@ Before deploying, ensure the following configurations are in place:
 ### Database Schema
 
 The application uses PostgreSQL with ChromaDB (referenced by external_id in Article). Class Diagram:
-https://apollon.ase.in.tum.de/AgHi0HlNo8vyTbWCRaht?view=EDIT
-![Class Diagram](https://raw.githubusercontent.com/AET-DevOps25/team-dev_ops/main/docs/Product%20backlog%20%26%20architecture/assets/Class_Diagram.png)
+![Class Diagram](docs/Product%20backlog%20%26%20architecture/assets/Class_Diagram.png)
 
 
 ### Use Case Diagram 
 
-<img src="https://raw.githubusercontent.com/AET-DevOps25/team-dev_ops/main/docs/Product%20backlog%20%26%20architecture/assets/use-case.png" width="600">
+<img src="docs/Product backlog & architecture/assets/use-case.png" width="600">
