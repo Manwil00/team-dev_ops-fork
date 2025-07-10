@@ -1,25 +1,24 @@
 # Article Fetcher Service
 
-_Stub implementation_
+This microservice fetches articles from external sources (arXiv and Reddit) and returns them in a normalized JSON format suitable for embedding.
 
-This micro-service will be responsible for fetching raw articles/posts from
-external sources (arXiv, Reddit, etc.) and returning them in a normalised JSON
-schema suitable for embedding.
+## API Documentation
 
-Routes (planned)
-----------------
-* **POST /fetch** – body: `{ query, max_results, source_type }`
-  * `source_type = research` → query arXiv API
-  * `source_type = community` → fetch subreddit RSS
-* Future dedicated endpoints `/fetch/research`, `/fetch/community` for clarity.
+For detailed endpoints and specs, see the [Swagger Docs](https://aet-devops25.github.io/team-dev_ops/swagger/).
 
-Running locally
----------------
+This service provides an endpoint to fetch and normalize articles from sources like arXiv and Reddit.
+
+## Running Locally
+
 ```bash
-cd services/article_fetcher
+cd services/py-fetcher
 uvicorn src.main:app --reload --port 8200
 ```
 
-The Dockerfile is already configured; the service will start on port 8200 in
-the compose network. Currently returns a stub response so that downstream
-services can be developed in parallel.
+The service runs on port 8200 in the Docker compose network.
+
+## Tests
+
+- Unit tests in tests/unit/  
+- Integration tests in tests/integration/  
+- Pact provider tests in tests/pact/

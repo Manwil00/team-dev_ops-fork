@@ -53,7 +53,7 @@ NicheExplorer is a microservices-based application that leverages machine learni
 
 | Service           | Technology Stack       | Port | Purpose                                   |
 |------------------|------------------------|------|-------------------------------------------|
-| client           | React + Vite + Nginx   | 80   | User interface and interaction [docs](web-client/README.md)           |
+| client           | React + Vite + Nginx   | 80   | User interface and interaction [[docs]](web-client/README.md)           |
 | api-server       | Spring Boot + Java     | 8080 | Request orchestration and business logic [[docs](services/spring-api/README.md)] |
 | genai            | FastAPI + Python       | 8000 | AI/ML processing and embeddings [[docs](services/py-genai/README.md)] |
 | topic-discovery  | FastAPI + Python       | 8100 | Content clustering and topic analysis [[docs](services/py-topics/README.md)] |
