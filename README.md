@@ -166,6 +166,8 @@ Before deploying, ensure the following configurations are in place:
         - Run `helm upgrade --install -n niche-explorer <Deployment Name> infra/helm/niche_explorer/`
     - monitoring-stack (i.e. Grafana and Prometheus):
         - Run `bash deploy-monitoring-stack.sh`
+    - alternatively the application and the monitoring stack can be deployed running this command `bash infra/helm/deploy.sh `.
+- To uninstall / undeploy these two, run `bash infra/helm/undeploy.sh`.
 
 
 ### Database Schema
