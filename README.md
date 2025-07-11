@@ -134,13 +134,29 @@ team-dev_ops/infra/helm/
 ```
 
 Before deploying, ensure the following configurations are in place:
-- Create secrets on k8s cluster:
-    - Insert the secret name in `values.yml` at `existingSecret: ...` sections
+- Create two namespaces on the cluster:
+    - niche-explorer: This is where the application will be hosted.
+    - monitoring: This is where Grafana and Prometheus will run.
+- Setup secrets on the cluster:
+    - Using [kubectl](https://kubernetes.io/de/docs/reference/kubectl/):
+     ```bash
+        kubectl create secret generic my-app-credentials \
+                    --from-literal=CHAIR_API_KEY="<YOUR_ACTUAL_CHAIR_API_KEY>" \
+                    --from-literal=GOOGLE_API_KEY="<YOUR_ACTUAL_GOOGLE_API_KEY>" \
+                    --from-literal=POSTGRES_DB="<YOUR_ACTUAL_POSTGRES_DB_NAME>" \
+                    --from-literal=POSTGRES_PASSWORD="<YOUR_ACTUAL_POSTGRES_PASSWORD>" \
+                    --from-literal=POSTGRES_USER="<YOUR_ACTUAL_POSTGRES_USER>" \
+                    --namespace <namespace>
+     ```
+    where:
     - CHAIR_API_KEY: Key to an LLM
-    - GOOGLE_API_KEY: Key of [text](https://aistudio.google.com/)
+    - GOOGLE_API_KEY: Key of [Google AI Studio](https://aistudio.google.com/)
     - POSTGRES_DB: Name of the database
     - POSTGRES_PASSWORD: Password for the database
     - POSTGRES_USER: Username for the database
+    - namespace: Namespace you want to deploy to.
+
+  
 - Configure Ingress address in `values.yml`
 - Create two namespaces in the project and configure the .kube/config file to point to the cluster:
     - niche-explorer: Namespace for the main project
