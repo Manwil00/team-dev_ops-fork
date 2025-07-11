@@ -16,7 +16,7 @@ if not os.getenv("GOOGLE_API_KEY"):
 # Initialize FastAPI app with metadata matching OpenAPI spec
 app = FastAPI(
     title="NicheExplorer GenAI Service",
-    version="2.2.0",
+    version="1.0.0",
     description="Microservice for GenAI tasks like classification and query generation.",
 )
 
@@ -28,12 +28,6 @@ app.include_router(classification.router, prefix="/api/v1")
 app.include_router(embedding.router, prefix="/api/v1")
 app.include_router(arxiv.router, prefix="/api/v1")
 app.include_router(generation.router, prefix="/api/v1")
-
-
-@app.get("/")
-async def root():
-    """Health check endpoint"""
-    return {"message": "NicheExplorer GenAI Service is running", "version": "2.2.0"}
 
 
 @app.get("/health")
