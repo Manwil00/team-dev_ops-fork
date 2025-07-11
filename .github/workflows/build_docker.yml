@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: Run Java Tests
+  gradle-build:
+    name: Gradle build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -47,7 +47,7 @@ jobs:
 
   build:
     name: Build Docker Images
-    needs: test
+    needs: gradle-build
     runs-on: ubuntu-latest
     strategy:
       matrix:
