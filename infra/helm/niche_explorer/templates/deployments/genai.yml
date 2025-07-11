@@ -39,7 +39,7 @@ spec:
                   name: {{ .Values.api_secrets.name }}
                   key: {{ .Values.api_secrets.GOOGLE_API_KEY }}
             - name: POSTGRES_HOST
-              value: "ingress-test-niche-explorer-db"
+              value: {{ .Values.pgvector.host }}
             - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:

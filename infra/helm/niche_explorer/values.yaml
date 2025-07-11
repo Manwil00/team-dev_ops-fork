@@ -57,6 +57,7 @@ api_secrets:
 
 pgvector:
   enabled: true
+  host: "niche-explorer-db"
 
   existingSecret: "niche-explorer-secrets"
 
