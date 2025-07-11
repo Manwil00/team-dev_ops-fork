@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'genai'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['genai.niche-explorer.svc.cluster.local:8000']
+
+  - job_name: 'topic-discovery'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['topic-discovery.niche-explorer.svc.cluster.local:8100']
+
+  - job_name: 'article-fetcher'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['article-fetcher.niche-explorer.svc.cluster.local:8200']
+    
+rule_files:
+  - "traefik_rules.yml"

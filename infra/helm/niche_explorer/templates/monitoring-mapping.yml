@@ -1,0 +1,29 @@
+# ExternalName service for Grafana
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-external
+  namespace: niche-explorer
+spec:
+  type: ExternalName
+  externalName: grafana.monitoring.svc.cluster.local
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+
+
+---
+# ExternalName service for Prometheus
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-external
+  namespace: niche-explorer
+spec:
+  type: ExternalName
+  externalName: prometheus-service.monitoring.svc.cluster.local
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090

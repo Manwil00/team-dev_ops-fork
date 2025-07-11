@@ -3,7 +3,6 @@ kind: Ingress
 metadata:
   name: "niche-explorer-ingress"
   annotations:
-    kubernetes.io/ingress.class: "nginx"
 
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-origin: "http://{{ .Values.ingress.student_id }}{{ .Values.ingress.base_host }}"
@@ -29,3 +28,25 @@ spec:
                 name: {{ .Values.ui.name }}
                 port:
                   number: {{ .Values.ui.port }}
+                  
+    - host: "prometheus.{{ .Values.ingress.student_id }}{{ .Values.ingress.base_host }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus-external
+                port:
+                  number: 9090
+
+    - host: "grafana.{{ .Values.ingress.student_id }}{{ .Values.ingress.base_host }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana-external 
+                port:
+                  number: 3000
