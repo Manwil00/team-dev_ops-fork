@@ -20,6 +20,13 @@ spec:
           ports:
             - containerPort: {{ .Values.service.genai.port }}
               name: {{ .Values.service.genai.name }}
+          resources:
+            requests:
+              memory: "512Mi"  # Request 512 MiB of memory
+              cpu: "250m"      # Request 1/4 of a CPU core (m = milli-CPU)
+            limits:
+              memory: "1Gi"    # Do not let the pod exceed 1 GiB of memory
+              cpu: "1"
           env:
             - name: CHAIR_API_KEY
               valueFrom:
@@ -31,3 +38,20 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.api_secrets.name }}
                   key: {{ .Values.api_secrets.GOOGLE_API_KEY }}
+            - name: POSTGRES_HOST
+              value: {{ .Values.pgvector.host }}
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.pgvector.existingSecret }}
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.pgvector.existingSecret }}
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.pgvector.existingSecret }}
+                  key: POSTGRES_PASSWORD

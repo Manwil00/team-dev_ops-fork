@@ -3,20 +3,17 @@ kind: Ingress
 metadata:
   name: "niche-explorer-ingress"
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web
+
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "http://{{ .Values.ingress.student_id }}{{ .Values.ingress.base_host }}"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "*"
 spec:
-  ingressClassName: traefik
+  ingressClassName: nginx
   rules:
     - host: "{{ .Values.ingress.student_id }}{{ .Values.ingress.base_host }}"
       http:
         paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ .Values.ui.name }}
-                port:
-                  number: {{ .Values.ui.port }}
           - path: /api
             pathType: Prefix
             backend:
@@ -24,3 +21,32 @@ spec:
                 name: {{ .Values.service.api.name }}
                 port:
                   number: {{ .Values.service.api.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.ui.name }}
+                port:
+                  number: {{ .Values.ui.port }}
+                  
+    - host: "prometheus.{{ .Values.ingress.student_id }}{{ .Values.ingress.base_host }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus-external
+                port:
+                  number: 9090
+
+    - host: "grafana.{{ .Values.ingress.student_id }}{{ .Values.ingress.base_host }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana-external 
+                port:
+                  number: 3000

@@ -43,7 +43,7 @@ service:
 
 ingress:
   enabled: true
-  className: "traefik"
+  className: "nginx"
   student_id: "ge74tif" # <TODO: Placeholder student ID>
   base_host: ".student.k8s.aet.cit.tum.de" # <TODO: Replace with actual FQDN>
   # tls: true
@@ -57,6 +57,7 @@ api_secrets:
 
 pgvector:
   enabled: true
+  host: "niche-explorer-db"
 
   existingSecret: "niche-explorer-secrets"
 

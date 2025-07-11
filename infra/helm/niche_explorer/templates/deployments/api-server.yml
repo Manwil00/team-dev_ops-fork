@@ -29,9 +29,7 @@ spec:
               value: {{ .Values.service.api.env.TOPIC_BASE_URL | quote }}
 
             - name: SPRING_DATASOURCE_URL
-              # It points to the database service's DNS name and includes the database name from values.yaml.
-              # Example: jdbc:postgresql://test-pvc-niche-explorer-db:5432/niche-db
-              value: "jdbc:postgresql://{{ .Release.Name }}-{{ .Chart.Name }}-db:5432/{{ .Values.pgvector.postgresql.database }}"
+              value: "jdbc:postgresql://{{ .Values.pgvector.host }}:5432/{{ .Values.pgvector.postgresql.database }}"
             
             # This pulls the database username from your external secret.
             - name: SPRING_DATASOURCE_USERNAME
@@ -40,10 +38,8 @@ spec:
                   name: {{ .Values.pgvector.existingSecret }}
                   key: POSTGRES_USER
             
-            # This pulls the database password from your external secret.
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.pgvector.existingSecret }}
                   key: POSTGRES_PASSWORD
-            # --- END: ADDED DATABASE CONFIGURATION ---

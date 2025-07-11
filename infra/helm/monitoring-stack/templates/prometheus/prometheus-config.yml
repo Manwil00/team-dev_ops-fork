@@ -7,7 +7,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   prometheus.yml: |-
-    {{- .Files.Get "prometheus/prometheus.yml" | nindent 4 }}
+    {{- .Files.Get "prometheus/prometheus-k8s.yml" | nindent 4 }}
 
   traefik_rules.yml: |-
     {{- .Files.Get "prometheus/traefik_rules.yml" | nindent 4 }}
