@@ -40,10 +40,8 @@ spec:
                   name: {{ .Values.pgvector.existingSecret }}
                   key: POSTGRES_USER
             
-            # This pulls the database password from your external secret.
             - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.pgvector.existingSecret }}
                   key: POSTGRES_PASSWORD
-            # --- END: ADDED DATABASE CONFIGURATION ---
