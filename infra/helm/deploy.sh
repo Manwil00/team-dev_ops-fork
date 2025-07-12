@@ -22,7 +22,7 @@ cp -r "infra/prometheus" "infra/helm/monitoring-stack/prometheus"
 
 # Deploy: Run Helm deployment 
 echo "--- Deploying Helm chart to monitoring namespace ---"
-helm upgrade --install -n --create-namespace monitoring niche-monitoring infra/helm/monitoring-stack
+helm upgrade --install -n monitoring niche-monitoring infra/helm/monitoring-stack
 
 echo "--- Helm monitoring deployment command succeeded ---"
 echo ""
@@ -30,5 +30,5 @@ echo ""
 
 # Deploy main application
 echo "--- Deploying main application ---"
-helm upgrade --install -n niche-explorer --create-namespace niche-application infra/helm/niche_explorer/
+helm upgrade --install -n niche-explorer niche-application infra/helm/niche_explorer/
 echo "--- Helm niche-explorer deployment command succeeded ---"
