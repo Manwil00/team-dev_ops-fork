@@ -1,14 +1,10 @@
-name: Deploy Helm Chart
+name: Manual Undeploy
 
 on:
-  workflow_run:
-    workflows: [Build Docker Images]
-    types:
-      - completed
   workflow_dispatch:
 
 jobs:
-  deployment:
+  undeploy:
     runs-on: 'ubuntu-latest'
     steps:
       - name: Checkout Repository
@@ -25,6 +21,6 @@ jobs:
           method: kubeconfig
           kubeconfig: ${{ secrets.KUBECONFIG }}
 
-      - name: Deploying the monitring stack and the application.
+      - name: Undeploying the monitoring stack and the application.
         run: |
-          bash ./infra/helm/deploy.sh
+          bash ./infra/helm/undeploy.sh
