@@ -1,4 +1,4 @@
-name: Manual Undeploy
+name: Undeploy Kubernetes Cluster Deployments
 
 on:
   workflow_dispatch:
