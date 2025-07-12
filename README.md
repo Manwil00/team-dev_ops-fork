@@ -167,6 +167,7 @@ Before deploying, ensure the following configurations are in place:
     - monitoring-stack (i.e. Grafana and Prometheus):
         - Run `bash deploy-monitoring-stack.sh`
     - alternatively the application and the monitoring stack can be deployed running this command `bash infra/helm/deploy.sh `.
+    - Wait around 5 minutes before accessing the application to ensure all services are up and running.
 - To uninstall / undeploy these two, run `bash infra/helm/undeploy.sh`.
 
 
