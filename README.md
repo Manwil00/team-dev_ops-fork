@@ -208,7 +208,7 @@ Manually create EC2 Instance:
     ~/.aws/credentials
     ```
 
-2.  Navigate to the Terraform directory:
+2.  Navigate to the Terraform directory (from project root folder):
     ```sh
     cd infra/terraform/
     ```
@@ -241,9 +241,9 @@ This installs Docker, logs in to the container registry, and starts the applicat
 
 1.  Navigate to the Ansible directory:
     ```sh
-    cd infra/ansible/  # From Project root
+    cd infra/ansible/  # From project root folder
 
-    cd ../ansible # From the terraform
+    cd ../ansible      # From the terraform folder
     ```
 
 2.  Place the private key file (`labsuser.pem`, obtained earlier) into this directory.
