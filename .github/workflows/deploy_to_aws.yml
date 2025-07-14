@@ -39,12 +39,11 @@ jobs:
       - name: Terraform Init & Apply
         id: terraform
         working-directory: infra/terraform
-        env:
-          TF_VAR_instance_id: ${{ github.event.inputs.instance_id }}
-          TF_VAR_public_ip: ${{ github.event.inputs.public_ip }}
         run: |
           terraform init
-          terraform apply -auto-approve
+          terraform apply -auto-approve \
+            -var="instance_id=${{ github.event.inputs.instance_id }}" \
+            -var="ssh_source_ip=${{ github.event.inputs.public_ip }}"
 
       # Asnible:
       
