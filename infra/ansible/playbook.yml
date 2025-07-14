@@ -1,11 +1,6 @@
----
 - name: Deploy Niche Explorer Application
   hosts: ec2_instance
   become: yes
-
-  vars:
-    ghcr_username: "<github_username>"
-    ghcr_token: "<github_token>"  # GitHub Personal Access Token with read:packages scope
 
   tasks:
     # Install Docker and Dependencies
@@ -121,7 +116,7 @@
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
 
-    - name: Ensure letsencrypt directory exists on server
+    - name: Ensure letsencrypt directory exists on server<
       file:
         path: /opt/niche-explorer/letsencrypt
         state: directory

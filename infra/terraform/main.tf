@@ -1,11 +1,21 @@
+variable "instance_id" {
+  description = "The ID of the existing EC2 instance to which the security group will be attached."
+  type        = string
+}
+
+variable "ssh_source_ip" {
+  description = "The source IP address allowed for SSH access (e.g., '1.2.3.4'). The '/32' will be added automatically."
+  type        = string
+}
+
 provider "aws" {
-  region                  = "us-east-1"
+  region                   = "us-east-1"
   shared_credentials_files = ["~/.aws/credentials"]
 }
 
-# Reference an existing EC2 instance
+# Reference an existing EC2 instance using the variable
 data "aws_instance" "existing_instance" {
-  instance_id = "<your_instance_id>"  # Replace with your actual instance ID
+  instance_id = var.instance_id
 }
 
 # Retrieve the subnet details to get the VPC ID
@@ -13,7 +23,7 @@ data "aws_subnet" "instance_subnet" {
   id = data.aws_instance.existing_instance.subnet_id
 }
 
-#Conditional Logic for Security Group:
+# Conditional Logic for Security Group:
 
 # Check if a security group with that name already exists.
 data "aws_security_groups" "existing_sg_lookup" {
@@ -28,7 +38,6 @@ data "aws_security_groups" "existing_sg_lookup" {
 }
 
 # Create the security group only if the lookup above found nothing.
-#    The 'count' trick means: if the list of IDs is empty (length is 0), create 1 of these. Otherwise, create 0.
 resource "aws_security_group" "app_sg_created" {
   count       = length(data.aws_security_groups.existing_sg_lookup.ids) == 0 ? 1 : 0
   name        = "app-security-group"
@@ -59,12 +68,14 @@ resource "aws_security_group" "app_sg_created" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["<ip-address>/32"] # Replace with your public IP
+    cidr_blocks = ["${var.ssh_source_ip}/32"]
   }
+  
   egress {
     from_port   = 0
     to_port     = 0
