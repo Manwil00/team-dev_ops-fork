@@ -8,17 +8,17 @@ services:
       - "--providers.docker.exposedbydefault=false"
       # Define entrypoints for web (HTTP) and websecure (HTTPS)
       - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      # Redirect all HTTP traffic to HTTPS
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      # Configure Let's Encrypt for automatic SSL certificates
-      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      # - "--entrypoints.websecure.address=:443"
+      # # Redirect all HTTP traffic to HTTPS
+      # - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      # - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # # Configure Let's Encrypt for automatic SSL certificates
+      # - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      # - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      # - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80"
-      - "443:443"
+      # - "443:443"
       - "8082:8082" # Metrics entrypoint
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
