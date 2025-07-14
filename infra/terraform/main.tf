@@ -18,20 +18,6 @@ data "aws_instance" "existing_instance" {
   instance_id = var.instance_id
 }
 
-# Configure S3 backend for state management
-terraform {
-  backend "s3" {
-    bucket         = "niche-state-bucket" # Replace with your S3 bucket name
-    key            = "terraform.tfstate"
-    region         = "us-east-1"
-  }
-}
-
-# Reference an existing EC2 instance using the variable
-data "aws_instance" "existing_instance" {
-  instance_id = var.instance_id
-}
-
 # Retrieve the subnet details to get the VPC ID
 data "aws_subnet" "instance_subnet" {
   id = data.aws_instance.existing_instance.subnet_id
@@ -108,10 +94,8 @@ locals {
 }
 
 
-# Attach the security group only if it's not already attached
+# Attach the security group to the instance's network interface
 resource "aws_network_interface_sg_attachment" "sg_attachment" {
-  count = contains(data.aws_instance.existing_instance.network_interfaces[0].security_groups[*], local.app_sg_id) ? 0 : 1
-
   security_group_id    = local.app_sg_id
-  network_interface_id = data.aws_instance.existing_instance.network_interfaces[0].network_interface_id
+  network_interface_id = data.aws_instance.existing_instance.network_interface_id
 }
