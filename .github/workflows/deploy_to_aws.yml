@@ -45,11 +45,20 @@ jobs:
             -var="instance_id=${{ github.event.inputs.instance_id }}" \
             -var="ssh_source_ip=${{ github.event.inputs.public_ip }}"
 
-      # Asnible:
-      
-      # Overwrite the DOMAIN in the .env file with the public IPv4 address of the AWS EC2 instance
-      - name: Update .env file
-        run: echo "DOMAIN=${{ github.event.inputs.public_ip }}" > .env
+      # Ansible:
+
+      # Create the .env file using GitHub Secrets and inputs
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          CHAIR_API_KEY=${{ secrets.CHAIR_API_KEY }}
+          GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+          POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          DOMAIN=${{ github.event.inputs.public_ip }}
+          EOF
+          echo ".env file created successfully."
 
       # Create the SSH private key file for Ansible
       - name: Set up SSH private key for Ansible
