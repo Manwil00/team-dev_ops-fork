@@ -190,6 +190,7 @@ Manually create EC2 Instance:
 3.  Configure the new instance with the following settings:
     *   **Name:** Choose a descriptive name (e.g., `my-app-server`).
     *   **Application and OS Images (AMI):** Select **Ubuntu**.
+    *   **Instance type*** Use an instance with at least 8 GiB RAM, like `t3.large`
     *   **Key pair (login):** Choose `vockey`as key pair. The corresponding `.pem` file will be needed later.
     *   **Network settings:** Ensure **HTTPS** and **HTTP** are enabled.
     *   **Configure storage:** Increase the root volume size to at least **25 GiB**.
@@ -240,7 +241,9 @@ This installs Docker, logs in to the container registry, and starts the applicat
 
 1.  Navigate to the Ansible directory:
     ```sh
-    cd infra/ansible/
+    cd infra/ansible/  # From Project root
+
+    cd ../ansible # From the terraform
     ```
 
 2.  Place the private key file (`labsuser.pem`, obtained earlier) into this directory.
@@ -264,7 +267,7 @@ This installs Docker, logs in to the container registry, and starts the applicat
 5.  Run the Ansible playbook to deploy the application, providing the GitHub username and Personal Access Token as extra variables (May take 5-10 minutes).
 
     ```sh
-    ansible-playbook -i inventory.yml playbook.yml --extra-vars "ghcr_username=<GITHUB_USERNAME> ghcr_token=<GITHUB_TOKEN>"
+    ansible-playbook playbook.yml --extra-vars "ghcr_username=<GITHUB_USERNAME> ghcr_token=<GITHUB_TOKEN>"
     ```
 
 The application should now be deployed and accessible at the public IP address of the EC2 instance.
