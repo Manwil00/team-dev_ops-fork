@@ -111,7 +111,7 @@ team-dev_ops/
 ```
 
 
-### Kubernetes Deployment
+## Kubernetes Deployment
 
 The application is set up to be deployable to a Kubernetes cluster via Helm.
 
@@ -169,6 +169,109 @@ Before deploying, ensure the following configurations are in place:
     - alternatively the application and the monitoring stack can be deployed running this command `bash infra/helm/deploy.sh `.
     - Wait around 5 minutes before accessing the application to ensure all services are up and running.
 - To uninstall / undeploy these two, run `bash infra/helm/undeploy.sh`.
+
+## AWS Deployment
+
+### Prerequisits
+
+Before beginning, ensure the following are installed and configured:
+
+*   **[Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli)**
+*   **[Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)**
+*   **[AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)**
+*   An **AWS account** with permissions to create EC2 instances and related resources.
+*   A **GitHub Personal Access Token (PAT)** with `read:packages` scope to pull images from the GitHub Container Registry (ghcr.io).
+*   If Docker images are not pushed to the standard project ghcr.io, update the paths in `infra/compose.aws.yml`.
+
+---
+Manually create EC2 Instance:
+1.  Log in to the **AWS Management Console** and navigate to the **EC2** service.
+2.  Click **Launch instances**.
+3.  Configure the new instance with the following settings:
+    *   **Name:** Choose a descriptive name (e.g., `my-app-server`).
+    *   **Application and OS Images (AMI):** Select **Ubuntu**.
+    *   **Key pair (login):** Choose `vockey`as key pair. The corresponding `.pem` file will be needed later.
+    *   **Network settings:** Ensure **HTTPS** and **HTTP** are enabled.
+    *   **Configure storage:** Increase the root volume size to at least **25 GiB**.
+4.  Click **Launch instance**.
+5.  Once the instance is running, copy its **Public IPv4 address** and **Instance ID**, as they will be needed later.
+
+
+### Local AWS Deployment
+
+#### Terraform 
+
+1.  Configure the local AWS credentials so Terraform can authenticate. They can typically be found in the AWS account details for the AWS CLI. Copy them into the local credentials file:
+    ```sh
+    # Location of the AWS credentials file
+    ~/.aws/credentials
+    ```
+
+2.  Navigate to the Terraform directory:
+    ```sh
+    cd infra/terraform/
+    ```
+
+3.  Create or update the `terraform.tfvars` file with the details from the created EC2 instance:
+    ```hcl
+    # infra/terraform/terraform.tfvars
+
+    instance_id = "i-xxx"  # <-- Replace with your Instance ID
+    public_ip   = "xxx.xxx.xxx.xxx"         # <-- Replace with your Public IPv4 address
+    ```
+
+4.  Initialize, plan, and apply the Terraform configuration:
+    ```sh
+    # Initialize the Terraform workspace
+    terraform init
+
+    # (Optional) Preview the changes that will be made
+    terraform plan
+
+    # Apply the changes to create the Elastic IP
+    terraform apply -auto-approve
+    ```
+
+#### Deploy using Ansible: 
+
+This installs Docker, logs in to the container registry, and starts the application.
+
+1.  Navigate to the Ansible directory:
+    ```sh
+    cd infra/ansible/
+    ```
+
+2.  Place the private key file (`labsuser.pem`, obtained earlier) into this directory.
+
+3.  Set the correct permissions for the private key file.
+    ```sh
+    chmod 400 labsuser.pem
+    ```
+
+4.  Open the `inventory.yml` file and update the `ansible_host` with the instance's public IP address.
+    ```yaml
+    # infra/ansible/inventory.yml
+
+    all:
+      hosts:
+        aws_instance:
+          ansible_host: xxx.xxx.xxx.xxx  # <-- Replace with Public IPv4 address
+          # ...
+    ```
+
+5.  Run the Ansible playbook to deploy the application, providing the GitHub username and Personal Access Token as extra variables (May take 5-10 minutes).
+
+    ```sh
+    ansible-playbook -i inventory.yml playbook.yml --extra-vars "ghcr_username=<GITHUB_USERNAME> ghcr_token=<GITHUB_TOKEN>"
+    ```
+
+The application should now be deployed and accessible at the public IP address of the EC2 instance.
+---
+
+In rare cases, the AWS public IP address changes seemingly at random. Hence, if the above fails with an SSH error, consider updating the IP address.
+
+
+#### GH-Action AWS Deployment
 
 
 ### Database Schema
