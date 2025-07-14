@@ -236,6 +236,8 @@ Manually create EC2 Instance:
 
 This installs Docker, logs in to the container registry, and starts the application.
 
+0. Update the `DOMAIN` variable in .env to the obtained public IP.
+
 1.  Navigate to the Ansible directory:
     ```sh
     cd infra/ansible/
