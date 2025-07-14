@@ -92,10 +92,3 @@ resource "aws_security_group" "app_sg_created" {
 locals {
   app_sg_id = length(data.aws_security_groups.existing_sg_lookup.ids) == 0 ? aws_security_group.app_sg_created[0].id : data.aws_security_groups.existing_sg_lookup.ids[0]
 }
-
-
-# Attach the security group to the instance's network interface
-resource "aws_network_interface_sg_attachment" "sg_attachment" {
-  security_group_id    = local.app_sg_id
-  network_interface_id = data.aws_instance.existing_instance.network_interface_id
-}
